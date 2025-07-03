@@ -13,6 +13,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // ตรรกะการพูดเหมือนเดิม ถูกต้องแล้ว
     const textToSpeak = message.text || (message.recipe ? `สูตรสำหรับ ${message.recipe.dishName}` : '');
     if (textToSpeak) {
       speak(textToSpeak);
@@ -35,22 +36,25 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             <img src={message.image} alt="User upload" className="rounded-lg mb-2 max-w-xs max-h-64 object-cover" />
           )}
           
-          {(message.text || (!isUser && message.recipe)) && (
-            <div className="flex items-start justify-between gap-3">
-              {message.text && <p className="whitespace-pre-wrap flex-1">{message.text}</p>}
-              {!isUser && (
-                <button
-                  onClick={handleSpeak}
-                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors self-start"
-                  aria-label="Listen to this message"
-                  title="ฟังเสียง"
-                >
-                  <SpeakerIcon className="w-4 h-4 flex-shrink-0" />
-                </button>
-              )}
-            </div>
-          )}
+          {/* --- จุดแก้ไขสำคัญ --- */}
+          <div className="flex items-start justify-between gap-3">
+            {/* ส่วนของข้อความจะแสดงผลถ้ามี text เท่านั้น */}
+            {message.text && <p className="whitespace-pre-wrap flex-1">{message.text}</p>}
+
+            {/* ปุ่มจะแสดงผลเสมอถ้าเป็นข้อความจากบอทและไม่กำลังโหลด */}
+            {!isUser && !message.isLoading && (
+              <button
+                onClick={handleSpeak}
+                className="p-1 text-gray-400 hover:text-gray-700 transition-colors self-start"
+                aria-label="Listen to this message"
+                title="ฟังเสียง"
+              >
+                <SpeakerIcon className="w-4 h-4 flex-shrink-0" />
+              </button>
+            )}
+          </div>
         </div>
+        
         {message.recipe && (
           <div className="mt-4 w-full">
             <RecipeCard recipe={message.recipe} />
