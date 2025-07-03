@@ -2,20 +2,21 @@
 <html lang="th">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ThaiFoodie - สูตรอาหารไทย</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="description" content="ค้นหาสูตรอาหารไทยง่ายๆ ด้วย AI อัจฉริยะ เพียงพิมพ์ชื่อหรืออัปโหลดรูปภาพ พร้อมวิธีทำและข้อมูลแคลอรี่" />
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="ThaiFoodie" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#ffffff">
+
     <style>
       body {
         font-family: 'Sarabun', sans-serif;
@@ -34,48 +35,14 @@
         background: #64748b; /* slate-500 */
       }
     </style>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          animation: {
-            'fadeInUp': 'fadeInUp 0.5s ease-out forwards',
-            'subtle-pulse': 'subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          },
-          keyframes: {
-            fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(10px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            'subtle-pulse': {
-              '0%, 100%': { transform: 'scale(1)', opacity: '1' },
-              '50%': { transform: 'scale(1.05)', opacity: '0.8' },
-            }
-          }
-        }
-      }
-    }
-  </script>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.1.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.8.0",
-    "vite": "https://esm.sh/vite@^7.0.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^4.6.0"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="bg-gradient-to-br from-gray-50 to-gray-200">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 
     <footer id="app-footer" class="text-center pb-2 pt-2 text-xs text-gray-400" style="display: none;">
-      <p>สงวนลิขสิทธิ์ © 2025 ThaiFoodie.</p>
-      <p class="mt-1">สร้างโดย ThaiFoodie Developer.</p>
+      <p>สงวนลิขสิทธิ์ © 2025 ThaiFoodie</p>
+      <p class="mt-1">สร้างโดย ThaiFoodie Developer</p>
       <p class="mt-1">ติดต่อเรา <a href="mailto:info@thaifoodie.site">info@thaifoodie.site</a></p>
     </footer>
 

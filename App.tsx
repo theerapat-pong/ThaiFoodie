@@ -5,7 +5,7 @@ import ChatInput from './components/ChatInput';
 import ChatMessage from './components/ChatMessage';
 import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from "@vercel/speed-insights/react"; // 1. เพิ่มบรรทัดนี้
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const App: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<ChatMessageType[]>(() => {
@@ -37,7 +37,7 @@ const App: React.FC = () => {
     localStorage.setItem('chatHistory', JSON.stringify(historyToSave));
   }, [chatHistory]);
   
-  const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null) => {
+  const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
     if (!inputText.trim() && !imageBase64) return;
     setIsLoading(true);
 
@@ -98,10 +98,16 @@ const App: React.FC = () => {
     localStorage.removeItem('chatHistory');
   };
 
+  const examplePrompts = [
+    "วิธีทำต้มยำกุ้ง",
+    "ขอสูตรผัดไทยหน่อย",
+    "แกงเขียวหวานใส่อะไรบ้าง"
+  ];
+
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-200 text-black min-h-screen flex flex-col font-sans">
       <Analytics />
-      <SpeedInsights /> {/* 2. เพิ่มบรรทัดนี้ */}
+      <SpeedInsights />
       <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-lg z-10 border-b border-black/10">
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -129,7 +135,18 @@ const App: React.FC = () => {
            {chatHistory.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                 <p className="text-lg">ยินดีต้อนรับสู่ ThaiFoodie!</p>
-                <p className="mt-2 text-sm max-w-sm">พิมพ์ชื่ออาหารไทย (เช่น "ต้มยำกุ้ง" หรือ "ผัดไทย") หรือจะทักทายพูดคุยกับฉันก็ได้นะ</p>
+                <p className="mt-2 text-sm max-w-sm">พิมพ์ชื่ออาหารไทย (เช่น "ต้มยำกุ้ง") หรืออัปโหลดรูปภาพเพื่อขอสูตรอาหาร</p>
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  {examplePrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => handleSendMessage(prompt)}
+                      className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
             </div>
            )}
           <div className="space-y-6">
