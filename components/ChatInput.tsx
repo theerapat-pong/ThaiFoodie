@@ -78,7 +78,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask for a recipe..."
+        placeholder="ค้นหาสูตรอาหาร..."
         className="flex-1 bg-transparent resize-none outline-none p-2 text-black placeholder-gray-500 max-h-32 text-base"
         rows={1}
         disabled={isLoading}
