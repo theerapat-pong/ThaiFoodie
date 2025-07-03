@@ -5,14 +5,14 @@ import { Canvas, createPortal, useFrame, useThree } from '@react-three/fiber'
 import { useFBO, useGLTF, MeshTransmissionMaterial } from '@react-three/drei'
 import { easing } from 'maath'
 
-// --- Main Component (Simplified) ---
+// --- Main Component (Simplified for background usage) ---
 export default function FluidGlass({
   lensProps = {},
 }) {
   return (
     <Canvas
       camera={{ position: [0, 0, 20], fov: 15 }}
-      gl={{ alpha: true }} // Set alpha to true for transparent background
+      gl={{ alpha: true }} // Key setting for transparent background
     >
       <Lens modeProps={lensProps} />
     </Canvas>
@@ -37,10 +37,8 @@ const ModeWrapper = memo(function ModeWrapper({
     const { gl, viewport, pointer, camera } = state
     const v = viewport.getCurrentViewport(camera, [0, 0, 15])
 
-    // Animate lens to follow the mouse pointer
     easing.damp3(ref.current.position, [(pointer.x * v.width) / 2, (pointer.y * v.height) / 2, 15], 0.15, delta)
 
-    // Render the main scene into the buffer (texture)
     gl.setRenderTarget(buffer)
     gl.render(scene, camera)
     gl.setRenderTarget(null)
@@ -59,16 +57,14 @@ const ModeWrapper = memo(function ModeWrapper({
     <>
       {createPortal(children, scene)}
       
-      {/* This plane catches the background content */}
       <mesh scale={[vp.width, vp.height, 1]}>
         <planeGeometry />
         <meshBasicMaterial map={buffer.texture} transparent />
       </mesh>
       
-      {/* This is the actual glass lens model */}
       <mesh
         ref={ref}
-        scale={scale ?? 0.25} // Use the scale from props or default to 0.25
+        scale={scale ?? 0.25}
         geometry={nodes[geometryKey]?.geometry}
         {...props}
       >
@@ -89,8 +85,8 @@ const ModeWrapper = memo(function ModeWrapper({
 function Lens({ modeProps, ...p }) {
   return (
     <ModeWrapper
-      glb="/assets/3d/lens.glb" // Now only this file is required
-      geometryKey="Cylinder"   // This key might need to change depending on your .glb file
+      glb="/assets/3d/lens.glb" // Requires this file in /public/assets/3d/
+      geometryKey="Cylinder"   // This might need changing depending on your .glb file's structure
       modeProps={modeProps}
       {...p}
     />
