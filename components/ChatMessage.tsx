@@ -1,10 +1,8 @@
-// src/components/ChatMessage.tsx
-
 import React from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
-import { UserIcon, BotIcon, SpeakerIcon } from './icons'; // 1. เพิ่ม SpeakerIcon เข้ามา
-import { speak } from '../services/speechService'; // 2. Import ฟังก์ชัน speak
+import { UserIcon, BotIcon, SpeakerIcon } from './icons';
+import { speak } from '../services/speechService';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -13,11 +11,13 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isUser = message.role === 'user';
 
-  // 3. ฟังก์ชันสำหรับจัดการเมื่อมีการคลิกปุ่มฟังเสียง
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (message.text) {
-      speak(message.text);
+    // ถ้ามีข้อความ text ให้พูดข้อความนั้น
+    // ถ้าไม่มี แต่มีชื่อเมนูในการ์ดสูตรอาหาร ให้พูดชื่อเมนูแทน
+    const textToSpeak = message.text || (message.recipe ? `สูตรสำหรับ ${message.recipe.dishName}` : '');
+    if (textToSpeak) {
+      speak(textToSpeak);
     }
   };
 
@@ -37,18 +37,18 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             <img src={message.image} alt="User upload" className="rounded-lg mb-2 max-w-xs max-h-64 object-cover" />
           )}
           
-          {/* 4. เพิ่มปุ่มฟังเสียงเข้ามาใต้ข้อความของบอท */}
-          {message.text && (
-            <div className="flex items-start justify-between gap-4">
-              <p className="whitespace-pre-wrap flex-1">{message.text}</p>
+          {/* แก้ไขโครงสร้างส่วนนี้ */}
+          {(message.text || (!isUser && message.recipe)) && (
+            <div className="flex items-start justify-between gap-3">
+              {message.text && <p className="whitespace-pre-wrap flex-1">{message.text}</p>}
               {!isUser && (
                 <button
                   onClick={handleSpeak}
-                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors self-start"
                   aria-label="Listen to this message"
                   title="ฟังเสียง"
                 >
-                  <SpeakerIcon className="w-4 h-4" />
+                  <SpeakerIcon className="w-4 h-4 flex-shrink-0" />
                 </button>
               )}
             </div>

@@ -1,45 +1,49 @@
-// src/services/speechService.ts
+let voices: SpeechSynthesisVoice[] = [];
 
-/**
- * ตรวจสอบภาษาของข้อความว่าเป็นภาษาไทยหรือไม่
- * @param text ข้อความที่ต้องการตรวจสอบ
- * @returns 'th-TH' ถ้ามีตัวอักษรไทย, มิฉะนั้นคืนค่า 'en-US'
- */
+// ฟังก์ชันสำหรับดึงรายการเสียงพูดที่มีในบราวเซอร์
+const populateVoiceList = () => {
+  if (typeof speechSynthesis === 'undefined') {
+    return;
+  }
+  voices = speechSynthesis.getVoices();
+};
+
+populateVoiceList();
+if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = populateVoiceList;
+}
+
 const detectLanguage = (text: string): 'th-TH' | 'en-US' => {
-  // ใช้ Regular Expression เพื่อค้นหาตัวอักษรใน Unicode Range ของภาษาไทย
   const thaiRegex = /[\u0E00-\u0E7F]/;
-  
   if (thaiRegex.test(text)) {
-    return 'th-TH'; // ถ้าเจอตัวอักษรไทย ให้ใช้เสียงภาษาไทย
+    return 'th-TH';
   } else {
-    return 'en-US'; // ถ้าไม่เจอ ให้ใช้เสียงภาษาอังกฤษ
+    return 'en-US';
   }
 };
 
-/**
- * ฟังก์ชันสำหรับสั่งให้เว็บบราวเซอร์พูดข้อความที่กำหนด
- * โดยจะตรวจสอบภาษา (ไทย/อังกฤษ) โดยอัตโนมัติ
- * @param text ข้อความที่ต้องการให้พูด
- */
 export const speak = (text: string) => {
-  // ตรวจสอบว่าบราวเซอร์รองรับ Speech Synthesis API หรือไม่
   if ('speechSynthesis' in window) {
-    const lang = detectLanguage(text); // 1. ตรวจสอบภาษาจากข้อความ
-    
-    // หยุดการพูดที่อาจกำลังเล่นอยู่ก่อนหน้า
-    window.speechSynthesis.cancel();
+    const lang = detectLanguage(text);
 
-    // สร้างอ็อบเจกต์เสียงพูดจากข้อความ
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // 2. ตั้งค่าภาษาและอัตราความเร็วในการพูดตามที่ตรวจพบ
+    // พยายามค้นหาเสียงคุณภาพดี
+    const thaiVoice = voices.find(voice => voice.lang === 'th-TH' && voice.name.includes('Google'));
+    const englishVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google'));
+
+    if (lang === 'th-TH' && thaiVoice) {
+      utterance.voice = thaiVoice;
+    } else if (lang === 'en-US' && englishVoice) {
+      utterance.voice = englishVoice;
+    }
+    
     utterance.lang = lang;
     utterance.rate = 1;
-    
-    // สั่งให้บราวเซอร์พูด
-    window.speechSynthesis.speak(utterance);
+
+    speechSynthesis.speak(utterance);
   } else {
-    // แจ้งเตือนในกรณีที่บราวเซอร์ไม่รองรับ
     console.error('ขออภัย, เว็บบราวเซอร์ของคุณไม่รองรับฟังก์ชันแปลงข้อความเป็นเสียงพูด');
     alert('ขออภัย, เว็บบราวเซอร์ของคุณไม่รองรับฟังก์ชันแปลงข้อความเป็นเสียงพูด');
   }
