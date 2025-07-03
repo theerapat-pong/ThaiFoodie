@@ -13,8 +13,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // ถ้ามีข้อความ text ให้พูดข้อความนั้น
-    // ถ้าไม่มี แต่มีชื่อเมนูในการ์ดสูตรอาหาร ให้พูดชื่อเมนูแทน
     const textToSpeak = message.text || (message.recipe ? `สูตรสำหรับ ${message.recipe.dishName}` : '');
     if (textToSpeak) {
       speak(textToSpeak);
@@ -37,7 +35,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             <img src={message.image} alt="User upload" className="rounded-lg mb-2 max-w-xs max-h-64 object-cover" />
           )}
           
-          {/* แก้ไขโครงสร้างส่วนนี้ */}
           {(message.text || (!isUser && message.recipe)) && (
             <div className="flex items-start justify-between gap-3">
               {message.text && <p className="whitespace-pre-wrap flex-1">{message.text}</p>}

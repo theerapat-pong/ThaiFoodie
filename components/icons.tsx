@@ -1,5 +1,3 @@
-// src/components/icons.tsx
-
 import React from 'react';
 
 export const SendIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -39,7 +37,6 @@ export const BotIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
-// --- โค้ดโลโก้จะถูกเปลี่ยนที่นี่ ---
 export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
     <defs>
@@ -49,13 +46,11 @@ export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
       </linearGradient>
     </defs>
     <circle cx="16" cy="16" r="15" fill="white" />
-    {/* This path draws the 'T' shape */}
     <path d="M9 9H23V12H18V23H14V12H9V9Z" fill="url(#t-gradient-light)" />
     <circle cx="16" cy="16" r="15" stroke="black" strokeOpacity="0.1" strokeWidth="1"/>
   </svg>
 );
 
-// --- ไอคอนรูปลำโพงที่เพิ่มเข้ามาใหม่ ---
 export const SpeakerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />

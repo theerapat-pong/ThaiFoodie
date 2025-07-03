@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid'; // 1. Import uuid เข้ามาใช้งาน
+import { v4 as uuidv4 } from 'uuid'; //  Import uuid เข้ามาใช้งาน
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
 import ChatInput from './components/ChatInput';
@@ -41,12 +41,12 @@ const App: React.FC = () => {
   const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
     if (!inputText.trim() && !imageBase64) return;
     
-    const modelLoadingMessageId = uuidv4(); // 2. สร้าง ID ที่ไม่ซ้ำกันสำหรับข้อความของบอท
+    const modelLoadingMessageId = uuidv4(); // สร้าง ID ที่ไม่ซ้ำกันสำหรับข้อความของบอท
 
     // ใช้ functional update เพื่อให้แน่ใจว่าเราได้ state ล่าสุดเสมอ
     setChatHistory(prev => {
       const userMessage: ChatMessageType = {
-        id: uuidv4(), // 2. สร้าง ID ที่ไม่ซ้ำกันสำหรับข้อความของผู้ใช้
+        id: uuidv4(), // สร้าง ID ที่ไม่ซ้ำกันสำหรับข้อความของผู้ใช้
         role: 'user',
         text: inputText,
         image: imageBase64 || undefined,
