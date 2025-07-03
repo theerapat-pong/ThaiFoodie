@@ -37,17 +37,18 @@ export const BotIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
+// --- โค้ดโลโก้จะถูกเปลี่ยนที่นี่ ---
 export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
     <defs>
-       <linearGradient id="b-gradient-light" x1="16" y1="9" x2="16" y2="23">
+       <linearGradient id="t-gradient-light" x1="16" y1="9" x2="16" y2="23">
         <stop offset="0%" stopColor="#27272a" />
         <stop offset="100%" stopColor="black" />
       </linearGradient>
     </defs>
     <circle cx="16" cy="16" r="15" fill="white" />
-    <path d="M13.5 9H18.5C20.9853 9 23 11.0147 23 13.5V13.5C23 15.9853 20.9853 18 18.5 18H13.5V9Z" fill="url(#b-gradient-light)" />
-    <path d="M13.5 16H19C21.2091 16 23 17.7909 23 20V20C23 22.2091 21.2091 24 19 24H13.5V16Z" fill="url(#b-gradient-light)" />
+    {/* This path draws the 'T' shape */}
+    <path d="M9 9H23V12H18V23H14V12H9V9Z" fill="url(#t-gradient-light)" />
     <circle cx="16" cy="16" r="15" stroke="black" strokeOpacity="0.1" strokeWidth="1"/>
   </svg>
 );
