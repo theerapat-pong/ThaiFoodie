@@ -5,18 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node node_modules/vite/bin/vite.js build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@google/genai": "^1.8.0",
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
     "@vercel/analytics": "^1.5.0",
-    "maath": "^0.10.8",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "three": "^0.178.0"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
