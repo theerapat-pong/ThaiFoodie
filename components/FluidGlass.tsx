@@ -37,8 +37,10 @@ const ModeWrapper = memo(function ModeWrapper({
     const { gl, viewport, pointer, camera } = state
     const v = viewport.getCurrentViewport(camera, [0, 0, 15])
 
+    // Animate lens to follow the mouse pointer
     easing.damp3(ref.current.position, [(pointer.x * v.width) / 2, (pointer.y * v.height) / 2, 15], 0.15, delta)
 
+    // Render the main scene into the buffer (texture)
     gl.setRenderTarget(buffer)
     gl.render(scene, camera)
     gl.setRenderTarget(null)
@@ -57,11 +59,13 @@ const ModeWrapper = memo(function ModeWrapper({
     <>
       {createPortal(children, scene)}
       
+      {/* This plane catches the background content */}
       <mesh scale={[vp.width, vp.height, 1]}>
         <planeGeometry />
         <meshBasicMaterial map={buffer.texture} transparent />
       </mesh>
       
+      {/* This is the actual glass lens model */}
       <mesh
         ref={ref}
         scale={scale ?? 0.25}
@@ -86,7 +90,7 @@ function Lens({ modeProps, ...p }) {
   return (
     <ModeWrapper
       glb="/assets/3d/lens.glb" // Requires this file in /public/assets/3d/
-      geometryKey="Cylinder"   // This might need changing depending on your .glb file's structure
+      geometryKey="Cylinder"   // This key might need to change depending on your .glb file's structure
       modeProps={modeProps}
       {...p}
     />
