@@ -36,12 +36,17 @@ const App: React.FC = () => {
     });
     localStorage.setItem('chatHistory', JSON.stringify(historyToSave));
   }, [chatHistory]);
-  
+
+  // ====================================================================
+  // --- จุดที่แก้ไขจะอยู่ในฟังก์ชัน handleSendMessage ด้านล่างนี้ ---
+  // ====================================================================
   const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
     if (!inputText.trim() && !imageBase64) return;
     setIsLoading(true);
 
     const userMessageId = Date.now().toString();
+    const modelLoadingMessageId = (Date.now() + 1).toString();
+
     const userMessage: ChatMessageType = {
       id: userMessageId,
       role: 'user',
@@ -49,49 +54,66 @@ const App: React.FC = () => {
       image: imageBase64 || undefined,
     };
     
-    setChatHistory(prev => [...prev, userMessage]);
-
-    const modelLoadingMessageId = (Date.now() + 1).toString();
     const modelLoadingMessage: ChatMessageType = {
       id: modelLoadingMessageId,
       role: 'model',
       text: '',
       isLoading: true
     };
-    setChatHistory(prev => [...prev, modelLoadingMessage]);
-
-    const prompt = inputText;
     
-    const result = await getRecipeForDish(prompt, imageBase64);
+    // **การแก้ไขที่ 1: รวบการอัปเดต State ให้เหลือครั้งเดียว**
+    // เพื่อเพิ่มข้อความของผู้ใช้และข้อความ "กำลังโหลด" ของบอทในคราวเดียว
+    // ซึ่งจะช่วยแก้ปัญหาการ Render ที่ผิดพลาดได้
+    setChatHistory(prev => [...prev, userMessage, modelLoadingMessage]);
 
-    let finalModelMessage: ChatMessageType;
+    // **การแก้ไขที่ 2: เพิ่ม try...catch...finally**
+    // เพื่อจัดการข้อผิดพลาดระหว่างเรียก API และให้แน่ใจว่า isLoading ถูกตั้งเป็น false เสมอ
+    try {
+      const prompt = inputText;
+      const result = await getRecipeForDish(prompt, imageBase64);
 
-    if ('error' in result) {
-       finalModelMessage = {
-          id: modelLoadingMessageId,
-          role: 'model',
-          text: result.error,
-          error: result.error
-       };
-    } else if ('conversation' in result) {
+      let finalModelMessage: ChatMessageType;
+
+      if ('error' in result) {
+          finalModelMessage = {
+            id: modelLoadingMessageId,
+            role: 'model',
+            text: result.error,
+            error: result.error
+          };
+      } else if ('conversation' in result) {
+          finalModelMessage = {
+              id: modelLoadingMessageId,
+              role: 'model',
+              text: result.conversation
+          };
+      } else {
         finalModelMessage = {
             id: modelLoadingMessageId,
             role: 'model',
-            text: result.conversation
+            text: `นี่คือสูตรสำหรับ ${result.dishName} ค่ะ`,
+            recipe: result as Recipe
         };
-    }
-    else {
-      finalModelMessage = {
-          id: modelLoadingMessageId,
-          role: 'model',
-          text: `นี่คือสูตรสำหรับ ${result.dishName} ค่ะ`,
-          recipe: result as Recipe
-      };
-    }
+      }
 
-    setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessageId ? finalModelMessage : msg));
-    setIsLoading(false);
+      setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessageId ? finalModelMessage : msg));
+    
+    } catch (error) {
+      console.error("Error during API call:", error);
+      const errorResponseMessage: ChatMessageType = {
+        id: modelLoadingMessageId,
+        role: 'model',
+        text: 'ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้นในการสื่อสารกับ AI',
+        error: 'API call failed'
+      };
+      setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessageId ? errorResponseMessage : msg));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+  // ====================================================================
+  // --- สิ้นสุดส่วนที่แก้ไข ---
+  // ====================================================================
 
   const handleClearHistory = () => {
     setChatHistory([]);
