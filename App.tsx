@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid'; // 1. Import uuid เข้ามาใช้งาน
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
 import ChatInput from './components/ChatInput';
@@ -30,44 +31,37 @@ const App: React.FC = () => {
   }, [chatHistory]);
 
   useEffect(() => {
-    const historyToSave = chatHistory.map(msg => {
+    const historyToSave = chatHistory.filter(msg => !msg.isLoading).map(msg => {
       const { image, ...rest } = msg;
       return rest;
     });
     localStorage.setItem('chatHistory', JSON.stringify(historyToSave));
   }, [chatHistory]);
-
-  // ====================================================================
-  // --- จุดที่แก้ไขจะอยู่ในฟังก์ชัน handleSendMessage ด้านล่างนี้ ---
-  // ====================================================================
+  
   const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
     if (!inputText.trim() && !imageBase64) return;
+    
+    const modelLoadingMessageId = uuidv4(); // 2. สร้าง ID ที่ไม่ซ้ำกันสำหรับข้อความของบอท
+
+    // ใช้ functional update เพื่อให้แน่ใจว่าเราได้ state ล่าสุดเสมอ
+    setChatHistory(prev => {
+      const userMessage: ChatMessageType = {
+        id: uuidv4(), // 2. สร้าง ID ที่ไม่ซ้ำกันสำหรับข้อความของผู้ใช้
+        role: 'user',
+        text: inputText,
+        image: imageBase64 || undefined,
+      };
+      const modelLoadingMessage: ChatMessageType = {
+        id: modelLoadingMessageId,
+        role: 'model',
+        text: '',
+        isLoading: true
+      };
+      return [...prev, userMessage, modelLoadingMessage];
+    });
+    
     setIsLoading(true);
 
-    const userMessageId = Date.now().toString();
-    const modelLoadingMessageId = (Date.now() + 1).toString();
-
-    const userMessage: ChatMessageType = {
-      id: userMessageId,
-      role: 'user',
-      text: inputText,
-      image: imageBase64 || undefined,
-    };
-    
-    const modelLoadingMessage: ChatMessageType = {
-      id: modelLoadingMessageId,
-      role: 'model',
-      text: '',
-      isLoading: true
-    };
-    
-    // **การแก้ไขที่ 1: รวบการอัปเดต State ให้เหลือครั้งเดียว**
-    // เพื่อเพิ่มข้อความของผู้ใช้และข้อความ "กำลังโหลด" ของบอทในคราวเดียว
-    // ซึ่งจะช่วยแก้ปัญหาการ Render ที่ผิดพลาดได้
-    setChatHistory(prev => [...prev, userMessage, modelLoadingMessage]);
-
-    // **การแก้ไขที่ 2: เพิ่ม try...catch...finally**
-    // เพื่อจัดการข้อผิดพลาดระหว่างเรียก API และให้แน่ใจว่า isLoading ถูกตั้งเป็น false เสมอ
     try {
       const prompt = inputText;
       const result = await getRecipeForDish(prompt, imageBase64);
@@ -111,9 +105,6 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
-  // ====================================================================
-  // --- สิ้นสุดส่วนที่แก้ไข ---
-  // ====================================================================
 
   const handleClearHistory = () => {
     setChatHistory([]);
