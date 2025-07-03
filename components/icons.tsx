@@ -1,3 +1,5 @@
+// src/components/icons.tsx
+
 import React from 'react';
 
 export const SendIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -26,7 +28,7 @@ export const UserIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
       <circle cx="12" cy="7" r="4" />
     </svg>
 );
-  
+ 
 export const BotIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="#E5E7EB"/>
@@ -41,7 +43,7 @@ export const BotIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
     <defs>
-       <linearGradient id="t-gradient-light" x1="16" y1="9" x2="16" y2="23">
+        <linearGradient id="t-gradient-light" x1="16" y1="9" x2="16" y2="23">
         <stop offset="0%" stopColor="#27272a" />
         <stop offset="100%" stopColor="black" />
       </linearGradient>
@@ -51,4 +53,12 @@ export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <path d="M9 9H23V12H18V23H14V12H9V9Z" fill="url(#t-gradient-light)" />
     <circle cx="16" cy="16" r="15" stroke="black" strokeOpacity="0.1" strokeWidth="1"/>
   </svg>
+);
+
+// --- ไอคอนรูปลำโพงที่เพิ่มเข้ามาใหม่ ---
+export const SpeakerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+    </svg>
 );
