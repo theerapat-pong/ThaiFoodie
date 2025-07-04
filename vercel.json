@@ -1,9 +1,8 @@
 {
-  "framework": "vite",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/sitemap.xml",
-      "dest": "/sitemap.xml"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
