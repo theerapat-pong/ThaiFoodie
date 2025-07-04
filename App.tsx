@@ -121,7 +121,9 @@ const ChatInterface: React.FC = () => {
 
     return (
         <>
-            <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-lg z-10 border-b border-black/10">
+            {/* --- START: โค้ดที่แก้ไข --- */}
+            <header className="fixed top-0 left-0 right-0 bg-white/40 backdrop-blur-[24px] z-10 border-b border-black/10">
+            {/* --- END: โค้ดที่แก้ไข --- */}
                 <div className="max-w-3xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-between">
                         <Link to="/" className="flex items-center space-x-3">
@@ -174,17 +176,14 @@ const ChatInterface: React.FC = () => {
                 </div>
             </main>
 
-            {/* --- START: โค้ดที่แก้ไข --- */}
             <footer className="fixed bottom-0 left-0 right-0">
-                {/* Container หลักสำหรับ effect ทั้งหมด */}
-                <div className="bg-white/70 backdrop-blur-lg border-t border-black/10">
-                    {/* Container สำหรับจัดกลาง */}
+                {/* --- START: โค้ดที่แก้ไข --- */}
+                <div className="bg-white/40 backdrop-blur-[24px] border-t border-black/10">
+                {/* --- END: โค้ดที่แก้ไข --- */}
                     <div className="max-w-3xl mx-auto">
-                        {/* ส่วนของช่องพิมพ์ */}
                         <div className="p-4">
                             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
                         </div>
-                        {/* ส่วนของลิงก์ */}
                         <div className="text-center pb-2 pt-1 text-xs text-gray-500">
                              <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
                                 <span>{t('copyright')}</span>
@@ -205,7 +204,6 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </div>
             </footer>
-            {/* --- END: โค้ดที่แก้ไข --- */}
         </>
     );
 };
