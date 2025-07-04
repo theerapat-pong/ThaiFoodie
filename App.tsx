@@ -1,7 +1,8 @@
-// src/App.tsx
+// src/App.tsx (เวอร์ชันสมบูรณ์ที่สุด)
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import { SignIn, SignUp, UserButton, useAuth, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
@@ -16,6 +17,7 @@ const ChatInterface: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const { isSignedIn, getToken } = useAuth();
+    const { user } = useUser(); // เพิ่ม Hook นี้เพื่อดึงข้อมูลผู้ใช้
 
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -105,7 +107,7 @@ const ChatInterface: React.FC = () => {
                               <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title="ล้างประวัติ">ล้างประวัติ</button>
                             )}
                             <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                            <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">ลงชื่อเข้าใช้งาน</Link> </SignedOut>
+                            <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">Sign In to Save History</Link> </SignedOut>
                         </div>
                     </div>
                 </div>
@@ -116,8 +118,13 @@ const ChatInterface: React.FC = () => {
                     {chatHistory.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                             <LogoIcon className="w-16 h-16 mb-4" />
-                            <p className="text-lg">สวัสดีครับ! ให้ ThaiFoodie ช่วยคุณค้นหาสูตรอาหารไทยวันนี้</p>
-                            <p className="mt-2 text-sm max-w-sm text-gray-500">พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย</p>
+                            {/* ---- ส่วนที่แก้ไขเพื่อทักทายชื่อ ---- */}
+                            <p className="text-2xl font-semibold">
+                                {isSignedIn && user?.firstName ? `สวัสดี คุณ${user.firstName}` : 'สวัสดีครับ!'}
+                            </p>
+                            <p className="mt-2 text-md text-gray-500">ให้ ThaiFoodie ช่วยคุณค้นหาสูตรอาหารไทยวันนี้</p>
+                            {/* ---- จบส่วนที่แก้ไข ---- */}
+                            <p className="mt-4 text-sm max-w-sm text-gray-500">พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย</p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
                                 {examplePrompts.map((prompt) => (
                                     <button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>
