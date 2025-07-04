@@ -1,0 +1,8 @@
+# Ignore node_modules folder
+node_modules/
+
+# You might want to add other common ignored files here too
+.env
+build/
+dist/
+*.log
