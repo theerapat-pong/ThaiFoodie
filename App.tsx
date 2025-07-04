@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { LogIn } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // Import hook
+import { useTranslation } from 'react-i18next';
 
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
@@ -11,18 +11,22 @@ import ChatMessage from './components/ChatMessage';
 import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import LanguageSwitcher from './components/LanguageSwitcher'; // Import ปุ่มเปลี่ยนภาษา
+// ใช้ LanguageSwitcher ที่เราสร้างขึ้นมาใหม่
+// import LanguageSwitcher from './components/LanguageSwitcher'; 
 
 const ChatInterface: React.FC = () => {
-    // --- START: i18n Hook ---
     const { t, i18n } = useTranslation();
-    // --- END: i18n Hook ---
-
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const { isSignedIn, getToken } = useAuth();
     const { user } = useUser();
+
+    // --- START: โค้ดที่แก้ไข ---
+    // ดึง examplePrompts มาจากไฟล์แปลภาษาโดยตรง
+    // และใช้ `as string[]` เพื่อบอก TypeScript ว่าผลลัพธ์จะเป็น Array ของ string
+    const examplePrompts = t('example_prompts', { returnObjects: true }) as string[];
+    // --- END: โค้ดที่แก้ไข ---
 
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,44 +52,30 @@ const ChatInterface: React.FC = () => {
         }
     }, [isSignedIn, getToken]);
     
-    // --- START: โค้ดที่แก้ไข ---
     const handleClearHistory = async () => {
-        // 1. ล้างประวัติบนหน้าจอก่อนทันที เพื่อให้ผู้ใช้เห็นผลลัพธ์
         setChatHistory([]);
-        
-        // 2. ถ้าผู้ใช้ login อยู่ ให้ส่งคำสั่งไปลบข้อมูลใน Database ด้วย
         if (isSignedIn) {
             const token = await getToken();
             if (!token) {
                 console.error("No token found for clearing history.");
                 return;
             }
-
             try {
-                const response = await fetch('/api/clear-chat-history', {
+                await fetch('/api/clear-chat-history', {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-
-                if (!response.ok) {
-                    // หากลบไม่สำเร็จ อาจจะแจ้งเตือนผู้ใช้หรือ log ไว้
-                    console.error("Failed to clear chat history from database.");
-                }
             } catch (error) {
                 console.error("Error calling clear-chat-history API:", error);
             }
         }
     };
-    // --- END: โค้ดที่แก้ไข ---
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
 
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
         const modelLoadingMessage: ChatMessageType = { id: 'model-loading-' + Date.now(), role: 'model', text: '', isLoading: true };
-
         const historyForApi = [...chatHistory];
 
         setChatHistory(prev => [...prev, userMessage, modelLoadingMessage]);
@@ -131,8 +121,6 @@ const ChatInterface: React.FC = () => {
         }
     }, [isSignedIn, getToken, t, chatHistory]);
 
-    const examplePrompts = ["วิธีทำต้มยำกุ้ง", "ขอสูตรผัดไทยหน่อย", "แกงเขียวหวานใส่อะไรบ้าง"];
-
     return (
         <>
             <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-lg z-10 border-b border-black/10">
@@ -175,6 +163,7 @@ const ChatInterface: React.FC = () => {
                             <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
                             <p className="mt-4 text-sm max-w-sm text-gray-500">{t('subheadline')}</p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
+                                {/* ส่วนนี้จะแสดงผลปุ่มตามภาษาที่เลือกโดยอัตโนมัติ */}
                                 {examplePrompts.map((prompt) => (
                                     <button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>
                                 ))}
