@@ -1,4 +1,3 @@
-// api/get-chat-history.ts
 import { sql } from '@vercel/postgres';
 import { Clerk } from '@clerk/clerk-sdk-node';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -12,22 +11,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: "Authorization header is missing" });
     }
     const token = authHeader.split(' ')[1];
-
-    // ตรวจสอบ Token ว่าถูกต้องและมาจากผู้ใช้ที่ล็อกอินจริง
+    
     const claims = await clerk.verifyToken(token);
     if (!claims.sub) {
         return res.status(401).json({ error: "Invalid token or user ID" });
     }
     const userId = claims.sub;
 
-    // ดึงข้อมูลจากตาราง chat_messages เฉพาะของ user คนนี้
     const { rows } = await sql`
         SELECT id, role, text_content, recipe_data FROM chat_messages
         WHERE user_id = ${userId}
         ORDER BY created_at ASC;
     `;
 
-    // แปลงข้อมูลให้ตรงกับ Type ที่ Frontend ใช้งาน
     const chatHistory = rows.map(row => ({
         id: String(row.id),
         role: row.role,
@@ -35,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         recipe: row.recipe_data,
         isLoading: false,
     }));
-
+    
     res.status(200).json(chatHistory);
   } catch (error) {
     console.error(error);

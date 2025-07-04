@@ -1,5 +1,4 @@
-// App.tsx (เวอร์ชันสมบูรณ์ที่สุด)
-
+// src/App.tsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, SignedIn, SignedOut } from '@clerk/clerk-react';
@@ -28,27 +27,22 @@ const ChatInterface: React.FC = () => {
             const fetchHistory = async () => {
                 const token = await getToken();
                 if (!token) return;
-
-                const response = await fetch('/api/get-chat-history', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
+                const response = await fetch('/api/get-chat-history', { headers: { 'Authorization': `Bearer ${token}` } });
                 if (response.ok) {
                     const data: ChatMessageType[] = await response.json();
                     setChatHistory(data);
                 } else {
-                    setChatHistory([]); // ถ้าดึงไม่ได้ ให้เคลียร์ค่าเก่าทิ้ง
+                    setChatHistory([]);
                 }
             };
             fetchHistory();
         } else {
-            setChatHistory([]); // ถ้าไม่ล็อกอิน ให้เคลียร์ค่าเสมอ
+            setChatHistory([]);
         }
     }, [isSignedIn, getToken]);
     
-    // เพิ่ม handleClearHistory กลับมา
     const handleClearHistory = async () => {
-        // ในอนาคตสามารถสร้าง API สำหรับลบประวัติใน DB ได้
+        // TODO: ในอนาคตสามารถสร้าง API สำหรับลบประวัติใน DB ของผู้ใช้ที่ล็อกอินได้
         setChatHistory([]);
     };
 
@@ -116,11 +110,12 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </div>
             </header>
-            <main className="flex-1 flex flex-col pt-24 pb-32 md:pb-36">
+
+            <main className="flex-1 flex flex-col pt-24 pb-44 md:pb-48">
                 <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto">
                     {chatHistory.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
-                             <LogoIcon className="w-16 h-16 mb-4" />
+                            <LogoIcon className="w-16 h-16 mb-4" />
                             <p className="text-lg">สวัสดีครับ! ให้ ThaiFoodie ช่วยคุณค้นหาสูตรอาหารไทยวันนี้</p>
                             <p className="mt-2 text-sm max-w-sm text-gray-500">พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย</p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -136,9 +131,15 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </div>
             </main>
-            <footer className="fixed bottom-0 left-0 right-0 bg-white/70 backdrop-blur-lg border-t border-black/10">
-                <div className="max-w-3xl mx-auto p-4">
-                    <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+
+            <footer className="fixed bottom-0 left-0 right-0">
+                <div className="bg-white/70 backdrop-blur-lg border-t border-black/10">
+                    <div className="max-w-3xl mx-auto p-4">
+                        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+                    </div>
+                </div>
+                <div className="text-center pb-2 pt-1 text-xs text-gray-400 bg-gray-100/50">
+                    <p>สงวนลิขสิทธิ์ © 2025 ThaiFoodie. สร้างโดย ThaiFoodie Developer. <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">ติดต่อเรา</a></p>
                 </div>
             </footer>
         </>
@@ -155,11 +156,6 @@ const App: React.FC = () => {
                 <Route path="/sign-in/*" element={<div className="flex justify-center items-center h-screen"><SignIn routing="path" path="/sign-in" afterSignInUrl="/" /></div>} />
                 <Route path="/sign-up/*" element={<div className="flex justify-center items-center h-screen"><SignUp routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} />
             </Routes>
-             <footer className="text-center pb-2 pt-2 text-xs text-gray-400 mt-auto">
-                <p>สงวนลิขสิทธิ์ © 2025 ThaiFoodie.</p>
-                <p className="mt-1">สร้างโดย ThaiFoodie Developer.</p>
-                <p className="mt-1">ติดต่อเรา <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">info@thaifoodie.site</a></p>
-            </footer>
         </div>
     );
 };
