@@ -1,8 +1,9 @@
-// src/App.tsx (เวอร์ชันสมบูรณ์ที่สุด)
+// src/App.tsx (เวอร์ชันสมบูรณ์ที่สุด - เพิ่มการทักทายและปุ่ม Sign In แบบใหม่)
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { LogIn } from 'lucide-react'; // เพิ่มการ import ไอคอน LogIn
 
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
@@ -17,7 +18,7 @@ const ChatInterface: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const { isSignedIn, getToken } = useAuth();
-    const { user } = useUser(); // เพิ่ม Hook นี้เพื่อดึงข้อมูลผู้ใช้
+    const { user } = useUser();
 
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,7 +45,6 @@ const ChatInterface: React.FC = () => {
     }, [isSignedIn, getToken]);
     
     const handleClearHistory = async () => {
-        // TODO: ในอนาคตสามารถสร้าง API สำหรับลบประวัติใน DB ของผู้ใช้ที่ล็อกอินได้
         setChatHistory([]);
     };
 
@@ -107,7 +107,16 @@ const ChatInterface: React.FC = () => {
                               <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title="ล้างประวัติ">ล้างประวัติ</button>
                             )}
                             <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                            <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">Sign In to Save History</Link> </SignedOut>
+                            {/* ---- ปุ่ม Sign In ที่แก้ไขแล้ว ---- */}
+                            <SignedOut>
+                              <Link 
+                                to="/sign-in" 
+                                className="flex items-center gap-2 text-sm font-semibold text-white bg-gray-800 rounded-lg px-4 py-2 hover:bg-black transition-colors shadow-sm"
+                              >
+                                <LogIn className="w-4 h-4" />
+                                <span>Sign In</span>
+                              </Link>
+                            </SignedOut>
                         </div>
                     </div>
                 </div>
@@ -118,12 +127,10 @@ const ChatInterface: React.FC = () => {
                     {chatHistory.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                             <LogoIcon className="w-16 h-16 mb-4" />
-                            {/* ---- ส่วนที่แก้ไขเพื่อทักทายชื่อ ---- */}
                             <p className="text-2xl font-semibold">
                                 {isSignedIn && user?.firstName ? `สวัสดี คุณ${user.firstName}` : 'สวัสดีครับ!'}
                             </p>
                             <p className="mt-2 text-md text-gray-500">ให้ ThaiFoodie ช่วยคุณค้นหาสูตรอาหารไทยวันนี้</p>
-                            {/* ---- จบส่วนที่แก้ไข ---- */}
                             <p className="mt-4 text-sm max-w-sm text-gray-500">พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย</p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
                                 {examplePrompts.map((prompt) => (
