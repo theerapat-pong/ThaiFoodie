@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'; // เพิ่ม useMemo
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { LogIn } from 'lucide-react';
@@ -11,8 +11,7 @@ import ChatMessage from './components/ChatMessage';
 import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
-// ใช้ LanguageSwitcher ที่เราสร้างขึ้นมาใหม่
-// import LanguageSwitcher from './components/LanguageSwitcher'; 
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 const ChatInterface: React.FC = () => {
     const { t, i18n } = useTranslation();
@@ -23,9 +22,14 @@ const ChatInterface: React.FC = () => {
     const { user } = useUser();
 
     // --- START: โค้ดที่แก้ไข ---
-    // ดึง examplePrompts มาจากไฟล์แปลภาษาโดยตรง
-    // และใช้ `as string[]` เพื่อบอก TypeScript ว่าผลลัพธ์จะเป็น Array ของ string
-    const examplePrompts = t('example_prompts', { returnObjects: true }) as string[];
+    // ใช้ useMemo เพื่อสร้างค่า examplePrompts อย่างปลอดภัย
+    // และจะคำนวณใหม่ก็ต่อเมื่อภาษาเปลี่ยน (t function เปลี่ยน)
+    const examplePrompts = useMemo(() => {
+        const prompts = t('example_prompts', { returnObjects: true });
+        // ตรวจสอบให้แน่ใจว่าค่าที่ได้เป็น Array จริงๆ
+        // ถ้าไม่ใช่ (เช่น ตอนกำลังโหลด) ให้ใช้ Array ว่างไปก่อน
+        return Array.isArray(prompts) ? prompts : [];
+    }, [t]);
     // --- END: โค้ดที่แก้ไข ---
 
     const scrollToBottom = () => {
@@ -163,7 +167,6 @@ const ChatInterface: React.FC = () => {
                             <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
                             <p className="mt-4 text-sm max-w-sm text-gray-500">{t('subheadline')}</p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
-                                {/* ส่วนนี้จะแสดงผลปุ่มตามภาษาที่เลือกโดยอัตโนมัติ */}
                                 {examplePrompts.map((prompt) => (
                                     <button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>
                                 ))}
