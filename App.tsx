@@ -1,4 +1,4 @@
-// src/App.tsx (เวอร์ชันสมบูรณ์ที่สุด - แก้ไขปัญหา Layout บนมือถือ)
+// src/App.tsx (เวอร์ชันแก้ไขล่าสุด)
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
@@ -84,7 +84,13 @@ const ChatInterface: React.FC = () => {
 
         } catch (error) {
             console.error("Error during API call:", error);
-            const errorResponseMessage: ChatMessageType = { id: 'model-error-' + Date.now(), role: 'model', text: 'ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น', error: 'API call failed' };
+            const errorMessage = error instanceof Error ? error.message : 'มีข้อผิดพลาดเกิดขึ้น';
+            const errorResponseMessage: ChatMessageType = { 
+                id: 'model-error-' + Date.now(), 
+                role: 'model', 
+                text: `ขออภัยค่ะ, ${errorMessage}`,
+                error: 'API call failed' 
+            };
             setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? errorResponseMessage : msg));
         } finally {
             setIsLoading(false);
@@ -124,7 +130,6 @@ const ChatInterface: React.FC = () => {
             <main className="flex-1 flex flex-col pt-24 pb-44 md:pb-48">
                 <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto">
                     {chatHistory.length === 0 && !isLoading && (
-                        /* ---- โค้ดที่แก้ไข ---- */
                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                             <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                             <p className="text-2xl font-semibold">
@@ -138,7 +143,6 @@ const ChatInterface: React.FC = () => {
                                 ))}
                             </div>
                         </div>
-                        /* ---- จบส่วนที่แก้ไข ---- */
                     )}
                     <div className="space-y-6">
                         {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} /> ))}
@@ -153,9 +157,31 @@ const ChatInterface: React.FC = () => {
                         <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
                     </div>
                 </div>
-                <div className="text-center pb-2 pt-1 text-xs text-gray-400 bg-gray-100/50">
-                    <p>สงวนลิขสิทธิ์ © 2025 ThaiFoodie. สร้างโดย ThaiFoodie Developer. <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">ติดต่อเรา</a></p>
+                
+                {/****************************************************************/}
+                {/* ---- START: โค้ดที่แก้ไข เพิ่มลิงก์และจัดระเบียบ Footer ---- */}
+                {/****************************************************************/}
+                <div className="text-center pb-2 pt-1 text-xs text-gray-500 bg-gray-100/50">
+                     <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                        <span>สงวนลิขสิทธิ์ © 2025 ThaiFoodie.</span>
+                        <span className="hidden md:inline">|</span>
+                        <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-black">
+                            ข้อกำหนดในการใช้บริการ
+                        </a>
+                        <span>|</span>
+                        <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-black">
+                            นโยบายความเป็นส่วนตัว
+                        </a>
+                         <span className="hidden md:inline">|</span>
+                        <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">
+                            ติดต่อเรา
+                        </a>
+                    </div>
                 </div>
+                {/***************************************************************/}
+                {/* ---- END: โค้ดที่แก้ไข ---- */}
+                {/***************************************************************/}
+
             </footer>
         </>
     );
