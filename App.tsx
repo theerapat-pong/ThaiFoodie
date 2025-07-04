@@ -1,9 +1,9 @@
-// src/App.tsx (เวอร์ชันสมบูรณ์ที่สุด - เพิ่มการทักทายและปุ่ม Sign In แบบใหม่)
+// src/App.tsx (เวอร์ชันสมบูรณ์ที่สุด - แก้ไขปัญหา Layout บนมือถือ)
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
-import { LogIn } from 'lucide-react'; // เพิ่มการ import ไอคอน LogIn
+import { LogIn } from 'lucide-react';
 
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
@@ -107,7 +107,6 @@ const ChatInterface: React.FC = () => {
                               <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title="ล้างประวัติ">ล้างประวัติ</button>
                             )}
                             <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                            {/* ---- ปุ่ม Sign In ที่แก้ไขแล้ว ---- */}
                             <SignedOut>
                               <Link 
                                 to="/sign-in" 
@@ -125,8 +124,9 @@ const ChatInterface: React.FC = () => {
             <main className="flex-1 flex flex-col pt-24 pb-44 md:pb-48">
                 <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto">
                     {chatHistory.length === 0 && !isLoading && (
-                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
-                            <LogoIcon className="w-16 h-16 mb-4" />
+                        /* ---- โค้ดที่แก้ไข ---- */
+                        <div className="flex flex-col items-center justify-start pt-12 text-center text-gray-600 animate-fadeInUp">
+                            <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                             <p className="text-2xl font-semibold">
                                 {isSignedIn && user?.firstName ? `สวัสดี คุณ${user.firstName}` : 'สวัสดีครับ!'}
                             </p>
@@ -138,6 +138,7 @@ const ChatInterface: React.FC = () => {
                                 ))}
                             </div>
                         </div>
+                        /* ---- จบส่วนที่แก้ไข ---- */
                     )}
                     <div className="space-y-6">
                         {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} /> ))}
