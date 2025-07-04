@@ -158,30 +158,31 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </div>
                 
-                {/****************************************************************/}
-                {/* ---- START: โค้ดที่แก้ไข เพิ่มลิงก์และจัดระเบียบ Footer ---- */}
-                {/****************************************************************/}
                 <div className="text-center pb-2 pt-1 text-xs text-gray-500 bg-gray-100/50">
                      <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
                         <span>สงวนลิขสิทธิ์ © 2025 ThaiFoodie.</span>
                         <span className="hidden md:inline">|</span>
-                        <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-black">
+
+                        {/***************************************************************/}
+                        {/* ---- START: โค้ดที่แก้ไข ลบ target="_blank" ออก ---- */}
+                        {/***************************************************************/}
+                        <a href="/terms-of-service.html" className="underline hover:text-black">
                             ข้อกำหนดในการใช้บริการ
                         </a>
                         <span>|</span>
-                        <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-black">
+                        <a href="/privacy-policy.html" className="underline hover:text-black">
                             นโยบายความเป็นส่วนตัว
                         </a>
+                        {/***************************************************************/}
+                        {/* ---- END: โค้dที่แก้ไข ---- */}
+                        {/***************************************************************/}
+
                          <span className="hidden md:inline">|</span>
                         <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">
                             ติดต่อเรา
                         </a>
                     </div>
                 </div>
-                {/***************************************************************/}
-                {/* ---- END: โค้ดที่แก้ไข ---- */}
-                {/***************************************************************/}
-
             </footer>
         </>
     );

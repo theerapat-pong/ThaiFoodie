@@ -1,3 +1,5 @@
+// api/save-chat.ts (เวอร์ชันแก้ไข)
+
 import { sql } from '@vercel/postgres';
 import { Clerk } from '@clerk/clerk-sdk-node';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -25,8 +27,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const { userMessage, modelMessage }: { userMessage: ChatMessage, modelMessage: ChatMessage } = req.body;
         const userEmailResult = await clerk.users.getUser(userId);
-        const userEmail = userEmailResult.emailAddresses[0]?.emailAddress;
 
+        /************************************************************/
+        /* ---- START: โค้ดที่แก้ไข ---- */
+        /************************************************************/
+
+        // เพิ่มการตรวจสอบและกำหนดค่าเริ่มต้นเป็น null หากไม่มีอีเมล
+        // เพื่อป้องกัน error ในกรณีที่ผู้ใช้สมัครด้วยวิธีอื่น
+        const userEmail = userEmailResult.emailAddresses && userEmailResult.emailAddresses.length > 0
+            ? userEmailResult.emailAddresses[0].emailAddress
+            : null;
+
+        /**********************************************************/
+        /* ---- END: โค้ดที่แก้ไข ---- */
+        /**********************************************************/
+
+        // บรรทัดนี้ใช้ userEmail ที่ผ่านการตรวจสอบแล้ว
         await sql`INSERT INTO users (id, email) VALUES (${userId}, ${userEmail}) ON CONFLICT (id) DO NOTHING;`;
 
         await sql`
