@@ -1,4 +1,4 @@
-// App.tsx (เวอร์ชันปรับปรุงใหม่)
+// App.tsx (เวอร์ชันสมบูรณ์ที่สุด)
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
@@ -12,23 +12,18 @@ import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
-// === ส่วนของหน้าแชทหลัก (ใช้ร่วมกันทั้ง Guest และ User) ===
 const ChatInterface: React.FC = () => {
-    // 1. ลบ Logic การดึงข้อมูลจาก localStorage ออก เริ่มต้นด้วย state ว่างๆ เสมอ
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
-    const { isSignedIn, getToken } = useAuth(); // ดึงสถานะการล็อกอินและฟังก์ชัน getToken
+    const { isSignedIn, getToken } = useAuth();
 
-    // ฟังก์ชันเลื่อนจอลงล่างสุด
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
     useEffect(scrollToBottom, [chatHistory]);
 
-    // เมื่อ Component โหลด, จะเช็คว่าถ้าล็อกอินอยู่ ให้ดึงประวัติแชทมา
     useEffect(() => {
-        // ใช้ isSignedIn ในการเช็คเงื่อนไข
         if (isSignedIn) {
             const fetchHistory = async () => {
                 const token = await getToken();
@@ -41,14 +36,22 @@ const ChatInterface: React.FC = () => {
                 if (response.ok) {
                     const data: ChatMessageType[] = await response.json();
                     setChatHistory(data);
+                } else {
+                    setChatHistory([]); // ถ้าดึงไม่ได้ ให้เคลียร์ค่าเก่าทิ้ง
                 }
             };
             fetchHistory();
+        } else {
+            setChatHistory([]); // ถ้าไม่ล็อกอิน ให้เคลียร์ค่าเสมอ
         }
-        // ถ้าไม่ล็อกอิน (isSignedIn = false) ก็จะไม่ทำอะไร, chatHistory จะเป็นค่าว่าง
     }, [isSignedIn, getToken]);
+    
+    // เพิ่ม handleClearHistory กลับมา
+    const handleClearHistory = async () => {
+        // ในอนาคตสามารถสร้าง API สำหรับลบประวัติใน DB ได้
+        setChatHistory([]);
+    };
 
-    // ฟังก์ชันส่งข้อความ (ปรับปรุงใหม่)
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
 
@@ -71,13 +74,10 @@ const ChatInterface: React.FC = () => {
             }
 
             setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? finalModelMessage : msg));
-
-            // ---- 2. เพิ่มเงื่อนไขสำคัญตรงนี้ ----
-            // เช็คว่าผู้ใช้ล็อกอินอยู่หรือไม่ ก่อนจะทำการบันทึก
+            
             if (isSignedIn) {
                 const token = await getToken();
                 if (token) {
-                    // ถ้าล็อกอินอยู่, ถึงจะส่งข้อมูลไปบันทึกที่ฐานข้อมูล
                     await fetch('/api/save-chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -85,7 +85,6 @@ const ChatInterface: React.FC = () => {
                     });
                 }
             }
-            // ถ้าไม่ล็อกอิน โค้ดใน if block นี้ก็จะไม่ทำงาน ทำให้ไม่เกิดการบันทึก
 
         } catch (error) {
             console.error("Error during API call:", error);
@@ -100,6 +99,23 @@ const ChatInterface: React.FC = () => {
 
     return (
         <>
+            <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-lg z-10 border-b border-black/10">
+                <div className="max-w-3xl mx-auto px-4 py-3">
+                    <div className="flex items-center justify-between">
+                        <Link to="/" className="flex items-center space-x-3">
+                            <LogoIcon className="w-8 h-8" />
+                            <h1 className="text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1>
+                        </Link>
+                        <div className="flex items-center gap-4">
+                            {chatHistory.length > 0 && (
+                              <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title="ล้างประวัติ">ล้างประวัติ</button>
+                            )}
+                            <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
+                            <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">Sign In to Save History</Link> </SignedOut>
+                        </div>
+                    </div>
+                </div>
+            </header>
             <main className="flex-1 flex flex-col pt-24 pb-32 md:pb-36">
                 <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto">
                     {chatHistory.length === 0 && !isLoading && (
@@ -129,36 +145,21 @@ const ChatInterface: React.FC = () => {
     );
 };
 
-
-// === Component หลักที่ควบคุมทุกอย่าง ===
 const App: React.FC = () => {
     return (
         <div className="bg-gradient-to-br from-gray-50 to-gray-200 text-black min-h-screen flex flex-col font-sans">
             <Analytics />
             <SpeedInsights />
-            <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-lg z-10 border-b border-black/10">
-                <div className="max-w-3xl mx-auto px-4 py-3">
-                    <div className="flex items-center justify-between">
-                        <Link to="/" className="flex items-center space-x-3">
-                            <LogoIcon className="w-8 h-8" />
-                            <h1 className="text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1>
-                        </Link>
-                        <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                        <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">Sign In to Save History</Link> </SignedOut>
-                    </div>
-                </div>
-            </header>
-
-            <main className="flex-1 flex flex-col">
-                <Routes>
-                    {/* ทำให้หน้าหลัก (/) แสดง ChatInterface เสมอ */}
-                    <Route path="/" element={<ChatInterface />} />
-
-                    {/* หน้าสำหรับ Sign In และ Sign Up ของ Clerk */}
-                    <Route path="/sign-in/*" element={<div className="flex justify-center items-center h-screen"><SignIn routing="path" path="/sign-in" afterSignInUrl="/" /></div>} />
-                    <Route path="/sign-up/*" element={<div className="flex justify-center items-center h-screen"><SignUp routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} />
-                </Routes>
-            </main>
+            <Routes>
+                <Route path="/" element={<ChatInterface />} />
+                <Route path="/sign-in/*" element={<div className="flex justify-center items-center h-screen"><SignIn routing="path" path="/sign-in" afterSignInUrl="/" /></div>} />
+                <Route path="/sign-up/*" element={<div className="flex justify-center items-center h-screen"><SignUp routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} />
+            </Routes>
+             <footer className="text-center pb-2 pt-2 text-xs text-gray-400 mt-auto">
+                <p>สงวนลิขสิทธิ์ © 2025 ThaiFoodie.</p>
+                <p className="mt-1">สร้างโดย ThaiFoodie Developer.</p>
+                <p className="mt-1">ติดต่อเรา <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">info@thaifoodie.site</a></p>
+            </footer>
         </div>
     );
 };
