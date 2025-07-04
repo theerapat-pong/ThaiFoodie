@@ -105,7 +105,7 @@ const ChatInterface: React.FC = () => {
                               <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title="ล้างประวัติ">ล้างประวัติ</button>
                             )}
                             <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                            <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">Sign In to Save History</Link> </SignedOut>
+                            <SignedOut> <Link to="/sign-in" className="text-sm font-semibold hover:text-gray-700">ลงชื่อเข้าใช้งาน</Link> </SignedOut>
                         </div>
                     </div>
                 </div>
