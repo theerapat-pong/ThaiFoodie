@@ -125,7 +125,7 @@ const ChatInterface: React.FC = () => {
                 <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto">
                     {chatHistory.length === 0 && !isLoading && (
                         /* ---- โค้ดที่แก้ไข ---- */
-                        <div className="flex flex-col items-center justify-start pt-12 text-center text-gray-600 animate-fadeInUp">
+                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                             <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                             <p className="text-2xl font-semibold">
                                 {isSignedIn && user?.firstName ? `สวัสดี คุณ${user.firstName}` : 'สวัสดีครับ!'}
