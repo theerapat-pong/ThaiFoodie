@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'; // เพิ่ม useMemo
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { LogIn } from 'lucide-react';
@@ -21,16 +21,10 @@ const ChatInterface: React.FC = () => {
     const { isSignedIn, getToken } = useAuth();
     const { user } = useUser();
 
-    // --- START: โค้ดที่แก้ไข ---
-    // ใช้ useMemo เพื่อสร้างค่า examplePrompts อย่างปลอดภัย
-    // และจะคำนวณใหม่ก็ต่อเมื่อภาษาเปลี่ยน (t function เปลี่ยน)
     const examplePrompts = useMemo(() => {
         const prompts = t('example_prompts', { returnObjects: true });
-        // ตรวจสอบให้แน่ใจว่าค่าที่ได้เป็น Array จริงๆ
-        // ถ้าไม่ใช่ (เช่น ตอนกำลังโหลด) ให้ใช้ Array ว่างไปก่อน
         return Array.isArray(prompts) ? prompts : [];
     }, [t]);
-    // --- END: โค้ดที่แก้ไข ---
 
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -180,30 +174,38 @@ const ChatInterface: React.FC = () => {
                 </div>
             </main>
 
+            {/* --- START: โค้ดที่แก้ไข --- */}
             <footer className="fixed bottom-0 left-0 right-0">
+                {/* Container หลักสำหรับ effect ทั้งหมด */}
                 <div className="bg-white/70 backdrop-blur-lg border-t border-black/10">
-                    <div className="max-w-3xl mx-auto p-4">
-                        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
-                    </div>
-                </div>
-                <div className="text-center pb-2 pt-1 text-xs text-gray-500 bg-gray-100/50">
-                     <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                        <span>{t('copyright')}</span>
-                        <span className="hidden md:inline">|</span>
-                        <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">
-                            {t('terms_of_service')}
-                        </a>
-                        <span>|</span>
-                        <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">
-                            {t('privacy_policy')}
-                        </a>
-                         <span className="hidden md:inline">|</span>
-                        <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">
-                            {t('contact_us')}
-                        </a>
+                    {/* Container สำหรับจัดกลาง */}
+                    <div className="max-w-3xl mx-auto">
+                        {/* ส่วนของช่องพิมพ์ */}
+                        <div className="p-4">
+                            <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
+                        </div>
+                        {/* ส่วนของลิงก์ */}
+                        <div className="text-center pb-2 pt-1 text-xs text-gray-500">
+                             <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                                <span>{t('copyright')}</span>
+                                <span className="hidden md:inline">|</span>
+                                <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">
+                                    {t('terms_of_service')}
+                                </a>
+                                <span>|</span>
+                                <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">
+                                    {t('privacy_policy')}
+                                </a>
+                                 <span className="hidden md:inline">|</span>
+                                <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">
+                                    {t('contact_us')}
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </footer>
+            {/* --- END: โค้ดที่แก้ไข --- */}
         </>
     );
 };
