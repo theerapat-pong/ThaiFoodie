@@ -1,3 +1,11 @@
+/*
+================================================================================
+|                                                                              |
+|                      src/components/LanguageSwitcher.tsx                     |
+|                      (โค้ดสำหรับปุ่มเปลี่ยนภาษาดีไซน์ใหม่)                        |
+|                                                                              |
+================================================================================
+*/
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
@@ -63,3 +71,8 @@ const LanguageSwitcher: React.FC = () => {
     </div>
   );
 };
+
+// --- START: โค้ดที่แก้ไข ---
+// เพิ่มบรรทัดนี้เพื่อ export component ออกไปเป็น default
+export default LanguageSwitcher;
+// --- END: โค้ดที่แก้ไข ---
