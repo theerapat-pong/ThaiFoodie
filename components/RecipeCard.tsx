@@ -1,11 +1,13 @@
 import React from 'react';
 import { Recipe } from '../types';
 
+// 1. รับ t function เข้ามาใน props
 interface RecipeCardProps {
   recipe: Recipe;
+  t: (key: string) => string;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, t }) => {
   return (
     <div className="bg-white/60 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl shadow-gray-300/50 overflow-hidden">
       
@@ -18,7 +20,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
 
       <div className="relative px-5 pb-5 space-y-5">
         <div>
-          <h4 className="font-semibold text-lg text-gray-800 mb-3 border-b border-gray-300 pb-2">ส่วนผสม</h4>
+          {/* 2. ใช้ t function กับหัวข้อ */}
+          <h4 className="font-semibold text-lg text-gray-800 mb-3 border-b border-gray-300 pb-2">{t('ingredients')}</h4>
           <ul className="space-y-1.5 text-gray-700">
             {recipe.ingredients.map((ing, index) => (
               <li key={index} className="flex justify-between items-center text-sm">
@@ -30,7 +33,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
         </div>
 
         <div>
-          <h4 className="font-semibold text-lg text-gray-800 mb-3 border-b border-gray-300 pb-2">วิธีทำ</h4>
+           {/* 3. ใช้ t function กับหัวข้อ */}
+          <h4 className="font-semibold text-lg text-gray-800 mb-3 border-b border-gray-300 pb-2">{t('instructions')}</h4>
           <ol className="list-decimal list-inside space-y-3 text-gray-700 text-sm leading-relaxed">
             {recipe.instructions.map((step, index) => (
               <li key={index}>{step}</li>

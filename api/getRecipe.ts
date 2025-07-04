@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
 
 // This is a Vercel Edge Function
 export const config = {
@@ -44,7 +44,6 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
 
     * **SCHEMA C: For Errors / Unidentified Dishes**
         If you cannot identify the food as a Thai dish, or the request is unclear, use this schema.
-        --- THIS IS THE CORRECTED PART ---
         The error message must be a polite sentence in the user's detected language, explaining that the request was not understood.
         \`\`\`json
         {
@@ -81,21 +80,32 @@ export default async function handler(request: Request) {
   }
 
   try {
-    const { prompt, imageBase64 } = await request.json();
+    // --- START: โค้ดที่แก้ไข ---
+    // 1. รับ `history` เพิ่มเติมจาก request body
+    const { prompt, imageBase64, history } = await request.json();
 
-    let contentForAI;
-        
+    // 2. แปลง `history` จาก frontend ให้อยู่ในรูปแบบที่ Gemini ต้องการ (Content[])
+    const contents: Content[] = (history || [])
+      .filter((msg: any) => (msg.role === 'user' || msg.role === 'model') && !msg.isLoading && msg.text)
+      .map((msg: any) => ({
+        role: msg.role,
+        parts: [{ text: msg.text }]
+      }));
+
+    // 3. เพิ่มข้อความล่าสุดของผู้ใช้เข้าไปใน `contents`
     if (imageBase64) {
       const imagePart = base64ToGenerativePart(imageBase64.split(',')[1], imageBase64.split(';')[0].split(':')[1]);
       const textPart = { text: prompt };
-      contentForAI = { parts: [imagePart, textPart] };
+      contents.push({ role: 'user', parts: [imagePart, textPart] });
     } else {
-      contentForAI = prompt;
+      contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
+    // --- END: โค้ดที่แก้ไข ---
     
     const response: GenerateContentResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: contentForAI,
+        // 4. ส่ง `contents` ที่มีประวัติทั้งหมดไปให้ AI
+        contents: contents,
         config: {
           systemInstruction: systemInstruction,
           responseMimeType: "application/json",

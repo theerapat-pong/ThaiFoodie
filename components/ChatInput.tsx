@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { SendIcon, PaperclipIcon, XIcon } from './icons';
 
+// 1. รับ t function เข้ามาใน props
 interface ChatInputProps {
   onSendMessage: (text: string, imageBase64: string | null) => void;
   isLoading: boolean;
+  t: (key: string) => string;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, t }) => {
   const [text, setText] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +80,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="ค้นหาสูตรอาหาร..."
+        // 2. ใช้ t function กับ placeholder
+        placeholder={t('search_placeholder')}
         className="flex-1 bg-transparent resize-none outline-none p-2 text-black placeholder-gray-500 max-h-32 text-base"
         rows={1}
         disabled={isLoading}

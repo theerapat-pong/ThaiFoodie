@@ -1,0 +1,16 @@
+{
+  "greeting_signed_in": "สวัสดี คุณ{{firstName}}",
+  "greeting_signed_out": "สวัสดีครับ!",
+  "headline": "ให้ ThaiFoodie ช่วยคุณค้นหาสูตรอาหารไทยวันนี้",
+  "subheadline": "พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย",
+  "clear_history": "ล้างประวัติ",
+  "search_placeholder": "ค้นหาสูตรอาหาร...",
+  "thinking": "ThaiFoodie กำลังคิด...",
+  "recipe_for": "นี่คือสูตรสำหรับ {{dishName}} ค่ะ",
+  "ingredients": "ส่วนผสม",
+  "instructions": "วิธีทำ",
+  "terms_of_service": "ข้อกำหนดในการใช้บริการ",
+  "privacy_policy": "นโยบายความเป็นส่วนตัว",
+  "contact_us": "ติดต่อเรา",
+  "copyright": "สงวนลิขสิทธิ์ © 2025 ThaiFoodie."
+}

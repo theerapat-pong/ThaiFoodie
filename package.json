@@ -16,9 +16,12 @@
     "@vercel/analytics": "^1.2.2",
     "@vercel/postgres": "^0.10.0",
     "@vercel/speed-insights": "^1.0.10",
+    "i18next": "^25.3.1",
+    "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.379.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "^15.6.0",
     "react-router-dom": "^7.6.3"
   },
   "devDependencies": {

@@ -1,9 +1,8 @@
-// src/App.tsx (เวอร์ชันแก้ไขล่าสุด)
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { LogIn } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // Import hook
 
 import { ChatMessage as ChatMessageType, Recipe } from './types';
 import { getRecipeForDish } from './services/geminiService';
@@ -12,8 +11,13 @@ import ChatMessage from './components/ChatMessage';
 import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import LanguageSwitcher from './components/LanguageSwitcher'; // Import ปุ่มเปลี่ยนภาษา
 
 const ChatInterface: React.FC = () => {
+    // --- START: i18n Hook ---
+    const { t, i18n } = useTranslation();
+    // --- END: i18n Hook ---
+
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
@@ -44,9 +48,37 @@ const ChatInterface: React.FC = () => {
         }
     }, [isSignedIn, getToken]);
     
+    // --- START: โค้ดที่แก้ไข ---
     const handleClearHistory = async () => {
+        // 1. ล้างประวัติบนหน้าจอก่อนทันที เพื่อให้ผู้ใช้เห็นผลลัพธ์
         setChatHistory([]);
+        
+        // 2. ถ้าผู้ใช้ login อยู่ ให้ส่งคำสั่งไปลบข้อมูลใน Database ด้วย
+        if (isSignedIn) {
+            const token = await getToken();
+            if (!token) {
+                console.error("No token found for clearing history.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/clear-chat-history', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    // หากลบไม่สำเร็จ อาจจะแจ้งเตือนผู้ใช้หรือ log ไว้
+                    console.error("Failed to clear chat history from database.");
+                }
+            } catch (error) {
+                console.error("Error calling clear-chat-history API:", error);
+            }
+        }
     };
+    // --- END: โค้ดที่แก้ไข ---
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
@@ -54,11 +86,13 @@ const ChatInterface: React.FC = () => {
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
         const modelLoadingMessage: ChatMessageType = { id: 'model-loading-' + Date.now(), role: 'model', text: '', isLoading: true };
 
+        const historyForApi = [...chatHistory];
+
         setChatHistory(prev => [...prev, userMessage, modelLoadingMessage]);
         setIsLoading(true);
 
         try {
-            const result = await getRecipeForDish(inputText, imageBase64);
+            const result = await getRecipeForDish(inputText, imageBase64, historyForApi);
             let finalModelMessage: ChatMessageType;
 
             if ('error' in result) {
@@ -66,7 +100,7 @@ const ChatInterface: React.FC = () => {
             } else if ('conversation' in result) {
                 finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.conversation };
             } else {
-                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: `นี่คือสูตรสำหรับ ${result.dishName} ค่ะ`, recipe: result as Recipe };
+                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: t('recipe_for', { dishName: result.dishName }), recipe: result as Recipe };
             }
 
             setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? finalModelMessage : msg));
@@ -84,18 +118,18 @@ const ChatInterface: React.FC = () => {
 
         } catch (error) {
             console.error("Error during API call:", error);
-            const errorMessage = error instanceof Error ? error.message : 'มีข้อผิดพลาดเกิดขึ้น';
+            const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
             const errorResponseMessage: ChatMessageType = { 
                 id: 'model-error-' + Date.now(), 
                 role: 'model', 
-                text: `ขออภัยค่ะ, ${errorMessage}`,
+                text: `Sorry, ${errorMessage}`,
                 error: 'API call failed' 
             };
             setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? errorResponseMessage : msg));
         } finally {
             setIsLoading(false);
         }
-    }, [isSignedIn, getToken]);
+    }, [isSignedIn, getToken, t, chatHistory]);
 
     const examplePrompts = ["วิธีทำต้มยำกุ้ง", "ขอสูตรผัดไทยหน่อย", "แกงเขียวหวานใส่อะไรบ้าง"];
 
@@ -109,8 +143,11 @@ const ChatInterface: React.FC = () => {
                             <h1 className="text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1>
                         </Link>
                         <div className="flex items-center gap-4">
+                            <LanguageSwitcher />
                             {chatHistory.length > 0 && (
-                              <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title="ล้างประวัติ">ล้างประวัติ</button>
+                              <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title={t('clear_history')}>
+                                {t('clear_history')}
+                              </button>
                             )}
                             <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
                             <SignedOut>
@@ -133,10 +170,10 @@ const ChatInterface: React.FC = () => {
                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                             <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                             <p className="text-2xl font-semibold">
-                                {isSignedIn && user?.firstName ? `สวัสดี คุณ${user.firstName}` : 'สวัสดีครับ!'}
+                                {isSignedIn && user?.firstName ? t('greeting_signed_in', { firstName: user.firstName }) : t('greeting_signed_out')}
                             </p>
-                            <p className="mt-2 text-md text-gray-500">ให้ ThaiFoodie ช่วยคุณค้นหาสูตรอาหารไทยวันนี้</p>
-                            <p className="mt-4 text-sm max-w-sm text-gray-500">พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย</p>
+                            <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
+                            <p className="mt-4 text-sm max-w-sm text-gray-500">{t('subheadline')}</p>
                             <div className="mt-6 flex flex-wrap justify-center gap-2">
                                 {examplePrompts.map((prompt) => (
                                     <button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>
@@ -145,7 +182,7 @@ const ChatInterface: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-6">
-                        {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} /> ))}
+                        {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} /> ))}
                         <div ref={chatEndRef} />
                     </div>
                 </div>
@@ -154,32 +191,23 @@ const ChatInterface: React.FC = () => {
             <footer className="fixed bottom-0 left-0 right-0">
                 <div className="bg-white/70 backdrop-blur-lg border-t border-black/10">
                     <div className="max-w-3xl mx-auto p-4">
-                        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+                        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
                     </div>
                 </div>
-                
                 <div className="text-center pb-2 pt-1 text-xs text-gray-500 bg-gray-100/50">
                      <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                        <span>สงวนลิขสิทธิ์ © 2025 ThaiFoodie.</span>
+                        <span>{t('copyright')}</span>
                         <span className="hidden md:inline">|</span>
-
-                        {/***************************************************************/}
-                        {/* ---- START: โค้ดที่แก้ไข ลบ target="_blank" ออก ---- */}
-                        {/***************************************************************/}
-                        <a href="/terms-of-service.html" className="underline hover:text-black">
-                            ข้อกำหนดในการใช้บริการ
+                        <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">
+                            {t('terms_of_service')}
                         </a>
                         <span>|</span>
-                        <a href="/privacy-policy.html" className="underline hover:text-black">
-                            นโยบายความเป็นส่วนตัว
+                        <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">
+                            {t('privacy_policy')}
                         </a>
-                        {/***************************************************************/}
-                        {/* ---- END: โค้dที่แก้ไข ---- */}
-                        {/***************************************************************/}
-
                          <span className="hidden md:inline">|</span>
                         <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">
-                            ติดต่อเรา
+                            {t('contact_us')}
                         </a>
                     </div>
                 </div>

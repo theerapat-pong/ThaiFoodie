@@ -1,11 +1,14 @@
-// src/index.tsx
+// src/index.tsx (เวอร์ชันแก้ไข)
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { BrowserRouter } from 'react-router-dom';
 import { ClerkProvider } from '@clerk/clerk-react';
 
-// ดึง Key จาก Environment Variable ที่เราตั้งใน Vercel
+// ---- START: โค้ดที่เพิ่ม ----
+import './i18n'; 
+// ---- END: โค้ดที่เพิ่ม ----
+
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
