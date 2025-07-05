@@ -14,7 +14,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex items-start gap-3 md:gap-4 animate-fadeInUp ${isUser ? 'justify-end' : ''}`}>
+    // ---- START: โค้ดที่แก้ไข ----
+    // เปลี่ยน class อนิเมชันตามบทบาท (role) ของผู้ส่ง
+    <div className={`flex items-start gap-3 md:gap-4 w-full ${isUser ? 'justify-end animate-fadeInUp' : 'items-start animate-popUp'}`}>
+    {/* ---- END: โค้ดที่แก้ไข ---- */}
       {!isUser && (
         <div className={`flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-gray-200 border border-gray-300/50 shadow-sm`}>
           <BotIcon className="w-5 h-5 md:w-6 md:h-6 text-black" />
