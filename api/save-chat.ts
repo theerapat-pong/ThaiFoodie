@@ -24,25 +24,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const userId = claims.sub;
 
         const { userMessage, modelMessage }: { userMessage: ChatMessage, modelMessage: ChatMessage } = req.body;
-        const userEmailResult = await clerk.users.getUser(userId);
+        
+        // เราไม่จำเป็นต้องดึง email ทุกครั้งที่บันทึก สามารถลบส่วนนี้ออกเพื่อประสิทธิภาพที่ดีขึ้นได้
+        // const userEmailResult = await clerk.users.getUser(userId);
+        // const userEmail = userEmailResult.emailAddresses...
 
-        const userEmail = userEmailResult.emailAddresses && userEmailResult.emailAddresses.length > 0
-            ? userEmailResult.emailAddresses[0].emailAddress
-            : null;
-
-        await sql`INSERT INTO users (id, email) VALUES (${userId}, ${userEmail}) ON CONFLICT (id) DO NOTHING;`;
-
+        // บันทึกข้อความจาก User
         await sql`
             INSERT INTO chat_messages (user_id, role, text_content, image)
             VALUES (${userId}, 'user', ${userMessage.text}, ${userMessage.image || null});
         `;
         
-        await sql`
+        // ---- START: โค้ดที่แก้ไข ----
+        // บันทึกข้อความจาก Model และสั่งให้คืนค่า ID ที่สร้างใหม่
+        const result = await sql`
             INSERT INTO chat_messages (user_id, role, text_content, recipe_data, videos_data)
-            VALUES (${userId}, 'model', ${modelMessage.text}, ${modelMessage.recipe ? JSON.stringify(modelMessage.recipe) : null}, ${modelMessage.videos ? JSON.stringify(modelMessage.videos) : null});
+            VALUES (${userId}, 'model', ${modelMessage.text}, ${modelMessage.recipe ? JSON.stringify(modelMessage.recipe) : null}, ${modelMessage.videos ? JSON.stringify(modelMessage.videos) : null})
+            RETURNING id;
         `;
 
-        res.status(200).json({ success: true });
+        const newId = result.rows[0].id;
+
+        // ส่ง ID ใหม่ที่ได้จากฐานข้อมูลกลับไป
+        res.status(200).json({ success: true, newId: newId });
+        // ---- END: โค้ดที่แก้ไข ----
+
     } catch (error) {
         console.error("Save chat error:", error);
         res.status(500).json({ error: 'Failed to save chat message' });
