@@ -18,20 +18,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const userId = claims.sub;
 
-    // แก้ไข: เพิ่ม videos_data เข้าไปในคำสั่ง SELECT
     const { rows } = await sql`
-        SELECT id, role, text_content, recipe_data, videos_data FROM chat_messages
+        SELECT id, role, text_content, image, recipe_data, videos_data FROM chat_messages
         WHERE user_id = ${userId}
         ORDER BY created_at ASC;
     `;
 
-    // แก้ไข: เพิ่ม videos เข้าไปใน object ที่ map ออกมา
     const chatHistory = rows.map(row => ({
         id: String(row.id),
         role: row.role,
         text: row.text_content || '',
+        image: row.image,
         recipe: row.recipe_data,
-        videos: row.videos_data || [], // เพิ่ม videos ที่นี่
+        videos: row.videos_data || [],
         isLoading: false,
     }));
     

@@ -33,11 +33,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await sql`INSERT INTO users (id, email) VALUES (${userId}, ${userEmail}) ON CONFLICT (id) DO NOTHING;`;
 
         await sql`
-            INSERT INTO chat_messages (user_id, role, text_content)
-            VALUES (${userId}, 'user', ${userMessage.text});
+            INSERT INTO chat_messages (user_id, role, text_content, image)
+            VALUES (${userId}, 'user', ${userMessage.text}, ${userMessage.image || null});
         `;
         
-        // แก้ไข: เพิ่ม videos_data เข้าไปในคำสั่ง INSERT
         await sql`
             INSERT INTO chat_messages (user_id, role, text_content, recipe_data, videos_data)
             VALUES (${userId}, 'model', ${modelMessage.text}, ${modelMessage.recipe ? JSON.stringify(modelMessage.recipe) : null}, ${modelMessage.videos ? JSON.stringify(modelMessage.videos) : null});
