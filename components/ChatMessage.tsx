@@ -31,7 +31,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
           <BotIcon className="w-5 h-5 md:w-6 md:h-6 text-black" />
         </div>
       )}
-      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full max-w-lg`}>
+      {/* ---- START: โค้ดที่แก้ไข ---- */}
+      {/* ลบ class "max-w-lg" ออกเพื่อให้คอนเทนเนอร์ยืดได้เต็มความกว้าง */}
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full`}>
+      {/* ---- END: โค้ดที่แก้ไข ---- */}
         <div className={`px-4 py-3 rounded-2xl shadow-md ${isUser ? 'bg-gray-800 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'}`}>
           
           {message.isLoading ? (
