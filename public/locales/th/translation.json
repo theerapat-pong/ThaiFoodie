@@ -5,7 +5,7 @@
   "subheadline": "พิมพ์ชื่ออาหาร, อัปโหลดรูป, หรือลองใช้ตัวอย่างด้านล่างได้เลย",
   "clear_history": "ล้างประวัติ",
   "search_placeholder": "ค้นหาสูตรอาหาร...",
-  "thinking": "ThaiFoodie กำลังคิด",
+  "thinking": "ThaiFoodie กำลังคิด...",
   "recipe_for": "นี่คือสูตรสำหรับ {{dishName}} ค่ะ",
   "ingredients": "ส่วนผสม",
   "instructions": "วิธีทำ",
@@ -19,5 +19,7 @@
     "แกงเขียวหวานใส่อะไรบ้าง"
   ],
   "related_videos_title": "วิดีโอสอนทำอาหารที่เกี่ยวข้อง",
-  "sign_in_button": "ลงชื่อเข้าใช้"
+  "sign_in_button": "ลงชื่อเข้าใช้",
+  "show_related_videos": "แสดงวิดีโอแนะนำ",
+  "fetching_videos": "กำลังค้นหาวิดีโอ..."
 }
