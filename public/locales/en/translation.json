@@ -19,5 +19,7 @@
     "What's in Green Curry?"
   ],
   "related_videos_title": "Related Cooking Videos",
-  "sign_in_button": "Sign In"
+  "sign_in_button": "Sign In",
+  "show_related_videos": "Show Related Videos",
+  "fetching_videos": "Fetching videos..."
 }
