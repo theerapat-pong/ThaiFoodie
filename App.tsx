@@ -1,8 +1,8 @@
 // src/App.tsx (ฉบับแก้ไข)
 
-import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, lazy } from 'react'; // เพิ่ม Suspense, lazy
+import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import { UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'; // เอา SignIn, SignUp ออก
+import { UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { LogIn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,22 +14,35 @@ import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import LanguageSwitcher from './components/LanguageSwitcher';
-import Loader from './components/Loader'; // อาจจะต้องสร้าง Loader component ง่ายๆ
+import Loader from './components/Loader';
 
-// ---- START: โค้ดที่เพิ่ม ----
-// Dynamic Imports สำหรับหน้า Sign-In และ Sign-Up
+// ---- START: โค้ดที่เพิ่มและแก้ไข ----
+import VideoCard from './components/VideoCard'; // 1. Import VideoCard
+
+// สร้าง Type สำหรับ Video
+interface Video {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channelTitle: string;
+}
+
 const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignIn })));
 const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
-// ---- END: โค้ดที่เพิ่ม ----
+// ---- END: โค้ดที่เพิ่มและแก้ไข ----
 
 const ChatInterface: React.FC = () => {
-    // ... (โค้ดส่วนของ ChatInterface ไม่มีการเปลี่ยนแปลง) ...
     const { t, i18n } = useTranslation();
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const { isSignedIn, getToken } = useAuth();
     const { user } = useUser();
+
+    // ---- START: โค้ดที่เพิ่ม ----
+    // 2. สร้าง state สำหรับเก็บข้อมูลวิดีโอ
+    const [videos, setVideos] = useState<Video[]>([]);
+    // ---- END: โค้ดที่เพิ่ม ----
 
     const examplePrompts = useMemo(() => {
         const prompts = t('example_prompts', { returnObjects: true });
@@ -39,7 +52,7 @@ const ChatInterface: React.FC = () => {
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-    useEffect(scrollToBottom, [chatHistory]);
+    useEffect(scrollToBottom, [chatHistory, videos]); // เพิ่ม videos เพื่อให้เลื่อนลงเมื่อวิดีโอโหลดเสร็จ
 
     useEffect(() => {
         if (isSignedIn) {
@@ -57,11 +70,13 @@ const ChatInterface: React.FC = () => {
             fetchHistory();
         } else {
             setChatHistory([]);
+            setVideos([]); // ล้างวิดีโอเมื่อ Sign Out
         }
     }, [isSignedIn, getToken]);
     
     const handleClearHistory = async () => {
         setChatHistory([]);
+        setVideos([]); // ล้างวิดีโอด้วย
         if (isSignedIn) {
             const token = await getToken();
             if (!token) {
@@ -79,9 +94,32 @@ const ChatInterface: React.FC = () => {
         }
     };
 
+    // ---- START: โค้ดที่แก้ไข ----
+    // 3. สร้างฟังก์ชันสำหรับดึงวิดีโอ
+    const fetchVideos = async (dishName: string) => {
+        try {
+            const response = await fetch('/api/getVideos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishName }),
+            });
+            if (response.ok) {
+                const videoData = await response.json();
+                setVideos(videoData);
+            } else {
+                setVideos([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch videos:", error);
+            setVideos([]);
+        }
+    };
+    // ---- END: โค้ดที่แก้ไข ----
+
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
 
+        setVideos([]); // ล้างวิดีโอเก่าทุกครั้งที่ส่งข้อความใหม่
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
         const modelLoadingMessage: ChatMessageType = { id: 'model-loading-' + Date.now(), role: 'model', text: '', isLoading: true };
         const historyForApi = [...chatHistory];
@@ -98,7 +136,13 @@ const ChatInterface: React.FC = () => {
             } else if ('conversation' in result) {
                 finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.conversation };
             } else {
-                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: t('recipe_for', { dishName: (result as Recipe).dishName }), recipe: result as Recipe };
+                const recipeResult = result as Recipe;
+                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: t('recipe_for', { dishName: recipeResult.dishName }), recipe: recipeResult };
+                
+                // ---- START: โค้ดที่เพิ่ม ----
+                // 4. เรียกฟังก์ชัน fetchVideos หลังจากได้สูตรอาหาร
+                await fetchVideos(recipeResult.dishName); 
+                // ---- END: โค้ดที่เพิ่ม ----
             }
 
             setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? finalModelMessage : msg));
@@ -179,6 +223,21 @@ const ChatInterface: React.FC = () => {
                     )}
                     <div className="space-y-6">
                         {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} /> ))}
+                        
+                        {/* ---- START: โค้ดที่เพิ่ม ---- */}
+                        {/* 5. แสดงผลลัพธ์วิดีโอ */}
+                        {videos.length > 0 && (
+                            <div className="animate-fadeInUp">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">วิดีโอสอนทำอาหารที่เกี่ยวข้อง</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {videos.map(video => (
+                                        <VideoCard key={video.id} video={video} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {/* ---- END: โค้ดที่เพิ่ม ---- */}
+                        
                         <div ref={chatEndRef} />
                     </div>
                 </div>
@@ -215,8 +274,6 @@ const ChatInterface: React.FC = () => {
 };
 
 const App: React.FC = () => {
-    // ---- START: โค้ดที่แก้ไข ----
-    // สร้าง Fallback UI ง่ายๆ สำหรับตอนที่คอมโพเนนต์กำลังโหลด
     const fallbackUI = (
       <div className="flex justify-center items-center h-screen">
         <Loader />
@@ -242,7 +299,6 @@ const App: React.FC = () => {
             </Suspense>
         </div>
     );
-    // ---- END: โค้ดที่แก้ไข ----
 };
 
 export default App;
