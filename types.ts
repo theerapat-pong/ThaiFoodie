@@ -20,6 +20,7 @@ export interface ConversationResponse {
 
 export type GeminiResponse = Recipe | RecipeError | ConversationResponse;
 
+// เพิ่ม interface สำหรับ Video
 export interface Video {
   id: string;
   title: string;
@@ -28,7 +29,7 @@ export interface Video {
 }
 
 export interface ChatMessage {
-  id: string;
+  id:string;
   role: 'user' | 'model';
   text: string;
   image?: string; // base64 string

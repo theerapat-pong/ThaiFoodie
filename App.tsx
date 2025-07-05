@@ -4,7 +4,7 @@ import { UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-
 import { LogIn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { ChatMessage as ChatMessageType, Recipe, Video } from './types'; // Import Video
+import { ChatMessage as ChatMessageType, Recipe, Video } from './types';
 import { getRecipeForDish } from './services/geminiService';
 import ChatInput from './components/ChatInput';
 import ChatMessage from './components/ChatMessage';
