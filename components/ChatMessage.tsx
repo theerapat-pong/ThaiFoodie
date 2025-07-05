@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
 import { UserIcon, BotIcon } from './icons';
 import Loader from './Loader';
-import VideoCard from './VideoCard'; // Import VideoCard
+import VideoCard from './VideoCard';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -12,6 +12,17 @@ interface ChatMessageProps {
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
   const isUser = message.role === 'user';
+  
+  const [showVideos, setShowVideos] = useState(false);
+
+  useEffect(() => {
+    if (message.videos && message.videos.length > 0 && !showVideos) {
+      const timer = setTimeout(() => {
+        setShowVideos(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [message.videos, showVideos]);
 
   return (
     <div className={`flex items-start gap-3 md:gap-4 animate-fadeInUp ${isUser ? 'justify-end' : ''}`}>
@@ -38,17 +49,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
         </div>
         
         {message.recipe && (
-          <div className="mt-4 w-full">
+          <div className="mt-4 w-full animate-fadeInUp">
             <RecipeCard recipe={message.recipe} t={t} />
           </div>
         )}
         
-        {message.videos && message.videos.length > 0 && (
+        {showVideos && message.videos && message.videos.length > 0 && (
             <div className="mt-4 w-full">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left">วิดีโอสอนทำอาหารที่เกี่ยวข้อง</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {message.videos.map((video: any) => (
-                        <VideoCard key={video.id} video={video} />
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left animate-fadeInUp">วิดีโอสอนทำอาหารที่เกี่ยวข้อง</h3>
+                <div className="flex overflow-x-auto space-x-4 pb-4 custom-scrollbar">
+                    {message.videos.map((video: any, index: number) => (
+                        <div key={video.id} className="flex-shrink-0 w-56">
+                          <VideoCard 
+                            video={video}
+                            style={{ animationDelay: `${index * 100}ms` }}
+                          />
+                        </div>
                     ))}
                 </div>
             </div>
