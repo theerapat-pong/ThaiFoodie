@@ -175,27 +175,20 @@ const ChatInterface: React.FC = () => {
                               </button>
                             )}
                             
-                            <div className={`auth-button-wrapper ${isLoaded ? 'loaded' : ''}`}>
-                                <SignedIn>
-                                    <div style={{ opacity: isLoaded && isSignedIn ? 1 : 0 }}>
-                                        <UserButton afterSignOutUrl="/" />
-                                    </div>
-                                </SignedIn>
-                                <SignedOut>
-                                    <div style={{ opacity: isLoaded && !isSignedIn ? 1 : 0 }}>
-                                      {/* ---- START: โค้ดที่แก้ไข ---- */}
-                                      <Link 
-                                        to="/sign-in" 
-                                        className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
-                                        title={t('sign_in_button')}
-                                      >
-                                        <LogIn className="w-4 h-4" />
-                                        <span className="hidden md:inline">{t('sign_in_button')}</span>
-                                      </Link>
-                                      {/* ---- END: โค้ดที่แก้ไข ---- */}
-                                    </div>
-                                </SignedOut>
-                            </div>
+                            {/* ---- START: โค้ดที่ย้อนกลับ ---- */}
+                            <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
+                            <SignedOut>
+                              <Link 
+                                to="/sign-in" 
+                                className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
+                                title={t('sign_in_button')}
+                              >
+                                <LogIn className="w-4 h-4" />
+                                <span className="hidden md:inline">{t('sign_in_button')}</span>
+                              </Link>
+                            </SignedOut>
+                            {/* ---- END: โค้ดที่ย้อนกลับ ---- */}
+
                         </div>
                     </div>
                 </div>
