@@ -44,7 +44,7 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
 
     * **SCHEMA C: For Errors / Unidentified Dishes**
         If you cannot identify the food as a Thai dish, or the request is unclear, use this schema.
-        The error message must be a polite sentence in the user's detected language, explaining that the request was not understood.
+        The error message must be a polite sentence in the user's language, explaining that the request was not understood.
         \`\`\`json
         {
           "error": "A polite message in the user's language explaining that the dish was not found or the query was not understood."
@@ -80,11 +80,8 @@ export default async function handler(request: Request) {
   }
 
   try {
-    // --- START: โค้ดที่แก้ไข ---
-    // 1. รับ `history` เพิ่มเติมจาก request body
     const { prompt, imageBase64, history } = await request.json();
 
-    // 2. แปลง `history` จาก frontend ให้อยู่ในรูปแบบที่ Gemini ต้องการ (Content[])
     const contents: Content[] = (history || [])
       .filter((msg: any) => (msg.role === 'user' || msg.role === 'model') && !msg.isLoading && msg.text)
       .map((msg: any) => ({
@@ -92,7 +89,6 @@ export default async function handler(request: Request) {
         parts: [{ text: msg.text }]
       }));
 
-    // 3. เพิ่มข้อความล่าสุดของผู้ใช้เข้าไปใน `contents`
     if (imageBase64) {
       const imagePart = base64ToGenerativePart(imageBase64.split(',')[1], imageBase64.split(';')[0].split(':')[1]);
       const textPart = { text: prompt };
@@ -100,11 +96,9 @@ export default async function handler(request: Request) {
     } else {
       contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
-    // --- END: โค้ดที่แก้ไข ---
     
     const response: GenerateContentResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        // 4. ส่ง `contents` ที่มีประวัติทั้งหมดไปให้ AI
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
@@ -122,13 +116,23 @@ export default async function handler(request: Request) {
     }
 
     let jsonStr = responseText.trim();
+    
+    // จัดการกรณีที่ Gemini อาจจะส่ง JSON มาในรูปแบบ Markdown code block
     const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
     const match = jsonStr.match(fenceRegex);
     if (match && match[2]) {
       jsonStr = match[2].trim();
     }
     
-    const parsedData = JSON.parse(jsonStr);
+    // ---- START: โค้ดที่แก้ไข ----
+    // เพิ่มขั้นตอน "ทำความสะอาด" JSON ก่อนการ Parse
+    // ลบ trailing commas ที่อาจทำให้เกิด SyntaxError
+    let sanitizedJsonStr = jsonStr
+      .replace(/,\s*\]/g, ']')  // ลบ comma ก่อน ]
+      .replace(/,\s*\}/g, '}'); // ลบ comma ก่อน }
+
+    const parsedData = JSON.parse(sanitizedJsonStr);
+    // ---- END: โค้ดที่แก้ไข ----
     
     return new Response(JSON.stringify(parsedData), {
         status: 200,
@@ -137,6 +141,13 @@ export default async function handler(request: Request) {
 
   } catch (e) {
     console.error("Vercel Function Error:", e);
+    // เพิ่มการตรวจสอบประเภทของ Error เพื่อให้ได้ข้อมูลที่ละเอียดขึ้น
+    if (e instanceof SyntaxError) {
+        return new Response(JSON.stringify({ error: `ขออภัยค่ะ เกิดข้อผิดพลาดในการอ่านข้อมูลจาก AI (JSON Syntax Error): ${e.message}` }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
     return new Response(JSON.stringify({ error: "ขออภัยค่ะ เกิดข้อผิดพลาดบนเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง" }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
