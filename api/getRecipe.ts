@@ -108,7 +108,7 @@ async function fetchVideos(dishName: string): Promise<any[]> {
 
 
 export default async function handler(request: Request) {
-  let responseText = ""; // ประกาศตัวแปรไว้นอก try-block เพื่อใช้ใน catch
+  let responseText = ""; 
   try {
     if (!API_KEY) {
       throw new Error("API_KEY ไม่ได้ถูกตั้งค่าบนเซิร์ฟเวอร์");
@@ -118,7 +118,12 @@ export default async function handler(request: Request) {
       return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { prompt, imageBase64, history, lang } = await request.json();
+    // ---- START: โค้ดที่แก้ไข ----
+    // อ่าน request body ทั้งหมดเพียงครั้งเดียว
+    const body = await request.json();
+    const { prompt, imageBase64, history, lang } = body;
+    // ---- END: โค้ดที่แก้ไข ----
+
     const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const contents: Content[] = (history || [])
@@ -144,25 +149,19 @@ export default async function handler(request: Request) {
         },
     });
 
-    responseText = response.text; // เก็บข้อความที่ AI ตอบกลับ
+    responseText = response.text; 
     if (!responseText) {
       throw new Error("AI returned an empty response.");
     }
 
-    // ---- START: โค้ดที่แก้ไข ----
-    // 1. ทำความสะอาดข้อความ JSON ที่ได้รับมา
     let jsonStr = responseText
       .trim()
-      .replace(/^```(json)?\s*/, '') // ลบ ```json ที่อาจจะติดมาตอนต้น
-      .replace(/```$/, '');          // ลบ ``` ที่อาจจะติดมาตอนท้าย
+      .replace(/^```(json)?\s*/, '')
+      .replace(/```$/, '');
 
-    // 2. ซ่อมแซม Trailing Commas ที่เป็นสาเหตุหลักของปัญหา
-    // Regex นี้จะมองหา comma (,) ที่ตามด้วยช่องว่าง (ถ้ามี) และอยู่ติดกับ } หรือ ] แล้วลบมันทิ้ง
     const sanitizedJsonStr = jsonStr.replace(/,\s*(?=[}\]])/g, '');
     
-    // 3. แปลงข้อความที่ซ่อมแล้วเป็น JSON
     const parsedData = JSON.parse(sanitizedJsonStr);
-    // ---- END: โค้ดที่แก้ไข ----
 
     let streamData: any = {};
     
@@ -171,9 +170,13 @@ export default async function handler(request: Request) {
     } else if (parsedData.conversation) {
         streamData.text = parsedData.conversation;
     } else {
-        streamData.text = lang === 'th' 
+        // ---- START: โค้ดที่แก้ไข ----
+        // ตรวจสอบภาษา (lang) ที่ส่งมาจาก Frontend ก่อนสร้างข้อความ
+        streamData.text = (lang === 'th' || !lang) // ถ้าไม่มี lang ให้ใช้ภาษาไทยเป็นค่าเริ่มต้น
             ? `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ` 
             : `Here is the recipe for ${parsedData.dishName}`;
+        // ---- END: โค้ดที่แก้ไข ----
+
         streamData.recipe = parsedData;
         streamData.videos = await fetchVideos(parsedData.dishName);
     }
@@ -182,7 +185,6 @@ export default async function handler(request: Request) {
 
   } catch (e) {
     console.error("Vercel Function Error:", e);
-    // เพิ่มการ log ข้อความ JSON ที่มีปัญหาเพื่อช่วยในการแก้ไขครั้งถัดไป
     console.error("Problematic AI response text:", responseText);
     const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
     return new Response(JSON.stringify({ error: `ขออภัยค่ะ เกิดข้อผิดพลาดบนเซิร์ฟเวอร์: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
