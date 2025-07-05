@@ -6,7 +6,6 @@ export const config = {
 
 const API_KEY = process.env.API_KEY;
 
-// ---- START: โค้ดที่แก้ไข (System Instruction) ----
 const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine.
 
 **ABSOLUTE RULES:**
@@ -18,9 +17,11 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
     * **SCHEMA A: For Thai Recipe Requests**
         -   All JSON **keys** MUST remain in English.
         -   All JSON **values** (like dishName, ingredients, instructions, etc.) MUST be strictly in the user's detected language. For example, if the user asks in English for "Pad Krapow", the dishName MUST be "Pad Krapow", NOT "ผัดกระเพรา". If they ask in Thai, it MUST be "ผัดกระเพรา".
+        -   **You MUST include a "responseText" key. This key's value should be a friendly introductory sentence like "Here is the recipe for [dishName]" or "นี่คือสูตรสำหรับ [dishName] ค่ะ", using the dishName you've generated in the correct language.**
 
         \`\`\`json
         {
+          "responseText": "Your introductory sentence here.",
           "dishName": "The name of the dish, strictly in the user's language.",
           "ingredients": [
             { "name": "Ingredient name, strictly in the user's language.", "amount": "Quantity, strictly in the user's language." }
@@ -47,7 +48,6 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
         }
         \`\`\`
 `;
-// ---- END: โค้ดที่แก้ไข (System Instruction) ----
 
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
@@ -80,14 +80,12 @@ function createStreamingResponse(data: any): Response {
   });
 }
 
-// ---- START: โค้ดที่แก้ไข (fetchVideos) ----
 async function fetchVideos(dishName: string, lang: string): Promise<any[]> {
     if (!process.env.YOUTUBE_API_KEY) {
         console.error("YouTube API Key is not configured.");
         return [];
     }
     try {
-        // เปลี่ยนคำค้นหาตามภาษาที่ได้รับ
         const queryPrefix = (lang === 'th' || !lang) ? 'วิธีทำ' : 'How to make';
         const query = `${queryPrefix} ${dishName}`;
 
@@ -108,7 +106,6 @@ async function fetchVideos(dishName: string, lang: string): Promise<any[]> {
         return [];
     }
 }
-// ---- END: โค้ดที่แก้ไข (fetchVideos) ----
 
 
 export default async function handler(request: Request) {
@@ -171,14 +168,13 @@ export default async function handler(request: Request) {
     } else if (parsedData.conversation) {
         streamData.text = parsedData.conversation;
     } else {
-        streamData.text = (lang === 'th' || !lang) 
-            ? `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ` 
-            : `Here is the recipe for ${parsedData.dishName}`;
+        // ---- START: โค้ดที่แก้ไข ----
+        // ใช้ responseText จาก AI โดยตรง
+        streamData.text = parsedData.responseText;
+        // ---- END: โค้ดที่แก้ไข ----
         
         streamData.recipe = parsedData;
-        // ---- START: โค้ดที่แก้ไข (ส่ง lang ไปด้วย) ----
         streamData.videos = await fetchVideos(parsedData.dishName, lang);
-        // ---- END: โค้ดที่แก้ไข (ส่ง lang ไปด้วย) ----
     }
     
     return createStreamingResponse(streamData);
