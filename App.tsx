@@ -70,86 +70,91 @@ const ChatInterface: React.FC = () => {
         }
     };
 
-    const fetchVideos = async (dishName: string): Promise<Video[]> => {
-        try {
-            const response = await fetch('/api/getVideos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dishName }),
-            });
-            if (response.ok) {
-                return await response.json();
-            }
-            return [];
-        } catch (error) {
-            console.error("Failed to fetch videos:", error);
-            return [];
-        }
-    };
-
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
 
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
-        const modelLoadingMessage: ChatMessageType = { id: 'model-loading-' + Date.now(), role: 'model', text: '', isLoading: true };
-        const historyForApi = [...chatHistory];
+        
+        const modelMessageId = 'model-' + Date.now();
+        const initialModelMessage: ChatMessageType = { id: modelMessageId, role: 'model', text: '', isLoading: true };
 
-        setChatHistory(prev => [...prev, userMessage, modelLoadingMessage]);
+        setChatHistory(prev => [...prev, userMessage, initialModelMessage]);
         setIsLoading(true);
 
         try {
-            const result = await getRecipeForDish(inputText, imageBase64, historyForApi);
-            let finalModelMessage: ChatMessageType;
+            const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
 
-            if (result.error && result.error.includes('JSON Syntax Error')) {
-                finalModelMessage = { 
-                    id: 'model-' + Date.now(), 
-                    role: 'model', 
-                    text: "ขออภัยค่ะ มีปัญหาในการจัดรูปแบบข้อมูลจาก AI ทำให้ไม่สามารถแสดงสูตรอาหารได้ ลองใหม่อีกครั้งนะคะ", 
-                    error: "AI Recipe Formatting Error" 
-                };
-            } else if ('error' in result) {
-                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.error, error: result.error };
-            } else if ('conversation' in result) {
-                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.conversation };
-            } else {
-                const recipeResult = result as Recipe;
-                const fetchedVideos = await fetchVideos(recipeResult.dishName);
-                
-                finalModelMessage = { 
-                    id: 'model-' + Date.now(), 
-                    role: 'model', 
-                    text: t('recipe_for', { dishName: recipeResult.dishName }), 
-                    recipe: recipeResult,
-                    videos: fetchedVideos 
-                };
+            if (!response.body) {
+                throw new Error("The response body is empty.");
             }
 
-            setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? finalModelMessage : msg));
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedText = "";
+            let finalMessageState: ChatMessageType | null = null;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                
+                if (chunk.includes('---DATA---')) {
+                    const parts = chunk.split('---DATA---');
+                    accumulatedText += parts[0];
+                    
+                    setChatHistory(prev => prev.map(msg => 
+                        msg.id === modelMessageId ? { ...msg, text: accumulatedText.trim(), isLoading: false } : msg
+                    ));
+
+                    const dataPayload = JSON.parse(parts[1]);
+                    setChatHistory(prev => prev.map(msg => 
+                        msg.id === modelMessageId ? { ...msg, recipe: dataPayload.recipe, videos: dataPayload.videos } : msg
+                    ));
+
+                } else {
+                    accumulatedText += chunk;
+                    setChatHistory(prev => prev.map(msg => 
+                        msg.id === modelMessageId ? { ...msg, text: accumulatedText.trim() } : msg
+                    ));
+                }
+            }
+            
+            setChatHistory(prev => {
+                const newHistory = [...prev];
+                const finalMsgIndex = newHistory.findIndex(msg => msg.id === modelMessageId);
+                if (finalMsgIndex !== -1) {
+                    finalMessageState = newHistory[finalMsgIndex];
+                }
+                return newHistory;
+            });
             
             if (isSignedIn) {
                 const token = await getToken();
-                if (token) {
+                if (token && finalMessageState) {
                     await fetch('/api/save-chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ userMessage, modelMessage: finalModelMessage })
+                        body: JSON.stringify({ userMessage, modelMessage: finalMessageState })
                     });
                 }
             }
 
         } catch (error) {
-            console.error("Error during API call:", error);
+            console.error("Error during API stream:", error);
             const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
             const errorResponseMessage: ChatMessageType = { 
-                id: 'model-error-' + Date.now(), 
+                id: modelMessageId, 
                 role: 'model', 
-                text: `Sorry, ${errorMessage}`,
-                error: 'API call failed' 
+                text: `ขออภัยค่ะ เกิดข้อผิดพลาด: ${errorMessage}`,
+                error: 'API stream failed' 
             };
-            setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? errorResponseMessage : msg));
+            setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? errorResponseMessage : msg));
         } finally {
             setIsLoading(false);
+            setChatHistory(prev => prev.map(msg => 
+                msg.id === modelMessageId ? { ...msg, isLoading: false } : msg
+            ));
         }
     }, [isSignedIn, getToken, t, chatHistory]);
 

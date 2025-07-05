@@ -1,6 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
 
-// This is a Vercel Edge Function
 export const config = {
   runtime: 'edge',
 };
@@ -17,7 +16,7 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
     * **SCHEMA A: For Thai Recipe Requests**
         If the user wants a Thai recipe, use this schema.
         -   **All JSON *keys* MUST remain in English.**
-        -   **All JSON *values* must be ONLY in the user's detected language (Thai or English). Do NOT add English translations in parentheses.** For example, for "dishName", if the user's language is Thai, the value should be "แกงไตปลา", NOT "แกงไตปลา (Gaeng Tai Pla)". For "amount", it should be "1 ถ้วย", NOT "1 ถ้วย (1 cup)".
+        -   **All JSON *values* must be ONLY in the user's detected language (Thai or English). Do NOT add English translations in parentheses.**
 
         \`\`\`json
         {
@@ -50,35 +49,74 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
         \`\`\`
 `;
 
-
 function base64ToGenerativePart(base64: string, mimeType: string) {
-  return {
-    inlineData: {
-      data: base64,
-      mimeType,
-    },
-  };
+  return { inlineData: { data: base64, mimeType } };
 }
+
+function createStreamingResponse(data: any): Response {
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+
+      if (data.text) {
+        controller.enqueue(encoder.encode(data.text));
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const dataPayload = {
+        recipe: data.recipe,
+        videos: data.videos,
+      };
+      controller.enqueue(encoder.encode('---DATA---' + JSON.stringify(dataPayload)));
+      
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+
+async function fetchVideos(dishName: string): Promise<any[]> {
+    if (!process.env.YOUTUBE_API_KEY) {
+        console.error("YouTube API Key is not configured.");
+        return [];
+    }
+    try {
+        const query = `วิธีทำ ${dishName}`;
+        const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&key=${process.env.YOUTUBE_API_KEY}&type=video&maxResults=5&videoEmbeddable=true`;
+        const youtubeResponse = await fetch(youtubeApiUrl);
+        if (youtubeResponse.ok) {
+            const youtubeData = await youtubeResponse.json();
+            return youtubeData.items.map((item: any) => ({
+                id: item.id.videoId,
+                title: item.snippet.title,
+                thumbnail: item.snippet.thumbnails.high.url,
+                channelTitle: item.snippet.channelTitle,
+            }));
+        }
+        return [];
+    } catch (error) {
+        console.error("Failed to fetch videos:", error);
+        return [];
+    }
+}
+
 
 export default async function handler(request: Request) {
   if (!API_KEY) {
-     return new Response(JSON.stringify({ error: "API_KEY ไม่ได้ถูกตั้งค่าบนเซิร์ฟเวอร์" }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: "API_KEY ไม่ได้ถูกตั้งค่าบนเซิร์ฟเวอร์" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
-  
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
 
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
   }
 
   try {
     const { prompt, imageBase64, history } = await request.json();
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const contents: Content[] = (history || [])
       .filter((msg: any) => (msg.role === 'user' || msg.role === 'model') && !msg.isLoading && msg.text)
@@ -89,13 +127,12 @@ export default async function handler(request: Request) {
 
     if (imageBase64) {
       const imagePart = base64ToGenerativePart(imageBase64.split(',')[1], imageBase64.split(';')[0].split(':')[1]);
-      const textPart = { text: prompt };
-      contents.push({ role: 'user', parts: [imagePart, textPart] });
+      contents.push({ role: 'user', parts: [imagePart, { text: prompt }] });
     } else {
       contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
     
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: contents,
         config: {
@@ -106,43 +143,30 @@ export default async function handler(request: Request) {
 
     const responseText = response.text;
     if (!responseText) {
-      console.error("Gemini API returned an empty or invalid response.");
-      return new Response(JSON.stringify({ error: "ขออภัยค่ะ AI ไม่มีการตอบกลับ ลองอีกครั้งนะคะ" }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-      });
+      throw new Error("AI returned an empty response.");
     }
 
-    let jsonStr = responseText.trim();
-    
-    const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
-    const match = jsonStr.match(fenceRegex);
-    if (match && match[2]) {
-      jsonStr = match[2].trim();
-    }
-    
-    let sanitizedJsonStr = jsonStr
-      .replace(/,\s*\]/g, ']')
-      .replace(/,\s*\}/g, '}');
-
+    let jsonStr = responseText.trim().replace(/^```(\w*\s)?/, '').replace(/```$/, '');
+    let sanitizedJsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
     const parsedData = JSON.parse(sanitizedJsonStr);
+
+    let streamData: any = {};
+
+    if (parsedData.error) {
+        streamData.text = parsedData.error;
+    } else if (parsedData.conversation) {
+        streamData.text = parsedData.conversation;
+    } else {
+        streamData.text = `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ`;
+        streamData.recipe = parsedData;
+        streamData.videos = await fetchVideos(parsedData.dishName);
+    }
     
-    return new Response(JSON.stringify(parsedData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-    });
+    return createStreamingResponse(streamData);
 
   } catch (e) {
     console.error("Vercel Function Error:", e);
-    if (e instanceof SyntaxError) {
-        return new Response(JSON.stringify({ error: `ขออภัยค่ะ เกิดข้อผิดพลาดในการอ่านข้อมูลจาก AI (JSON Syntax Error): ${e.message}` }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
-    }
-    return new Response(JSON.stringify({ error: "ขออภัยค่ะ เกิดข้อผิดพลาดบนเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง" }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-    });
+    const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
+    return new Response(JSON.stringify({ error: `ขออภัยค่ะ เกิดข้อผิดพลาดบนเซิร์ฟเวอร์: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
