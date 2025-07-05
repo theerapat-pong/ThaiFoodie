@@ -148,12 +148,10 @@ const ChatInterface: React.FC = () => {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
                 accumulatedJson += decoder.decode(value, { stream: true });
-                
-                setChatHistory(prev => prev.map(msg => 
-                    msg.id === modelMessageId ? { ...msg, text: accumulatedJson } : msg
-                ));
+                // ---- START: โค้ดที่แก้ไข ----
+                // เราจะไม่แสดงผลข้อมูลระหว่างทางอีกต่อไป
+                // ---- END: โค้ดที่แก้ไข ----
             }
 
             const parsedData = sanitizeAndParseJson(accumulatedJson);
@@ -175,11 +173,10 @@ const ChatInterface: React.FC = () => {
                 msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
             ));
 
-            // ---- START: โค้ดที่แก้ไข ----
+
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
-                    // รับ Response กลับมาเพื่อเอา newId
                     const saveResponse = await fetch('/api/save-chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -188,14 +185,12 @@ const ChatInterface: React.FC = () => {
                     
                     if (saveResponse.ok) {
                         const saveData = await saveResponse.json();
-                        // อัปเดต ID ของข้อความใน State ให้เป็น ID จริงจากฐานข้อมูล
                         setChatHistory(prev => prev.map(msg => 
                             msg.id === modelMessageId ? { ...msg, id: saveData.newId } : msg
                         ));
                     }
                 }
             }
-            // ---- END: โค้ดที่แก้ไข ----
 
         } catch (error) {
             console.error("Error during API stream:", error);
