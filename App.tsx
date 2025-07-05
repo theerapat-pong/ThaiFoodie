@@ -17,6 +17,26 @@ import Loader from './components/Loader';
 const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignIn })));
 const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
 
+
+// ฟังก์ชันสำหรับซ่อม JSON ที่ทนทานขึ้น
+function sanitizeAndParseJson(jsonString: string): any {
+    try {
+        // 1. ลบ ```json และ ``` ที่อาจจะติดมา
+        let cleanedString = jsonString.trim().replace(/^```(json)?\s*/, '').replace(/```$/, '');
+
+        // 2. ซ่อม Trailing Commas ที่เป็นสาเหตุหลักของปัญหา
+        cleanedString = cleanedString.replace(/,\s*(?=[}\]])/g, '');
+
+        // 3. ลอง Parse ตามปกติ
+        return JSON.parse(cleanedString);
+    } catch (error) {
+        console.error("JSON parsing failed:", error);
+        console.error("Problematic JSON string:", jsonString);
+        return { error: `ขออภัยค่ะ มีปัญหาในการอ่านข้อมูลจาก AI: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    }
+}
+
+
 const ChatInterface: React.FC = () => {
     const { t, i18n } = useTranslation();
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
@@ -81,11 +101,10 @@ const ChatInterface: React.FC = () => {
         setChatHistory(prev => [...prev, userMessage, initialModelMessage]);
         setIsLoading(true);
 
+        let finalMessageState: ChatMessageType | null = null;
+
         try {
-            // ---- START: โค้ดที่แก้ไข ----
-            // ส่งภาษาปัจจุบันไปกับ request ด้วย
-            const response = await getRecipeForDish(inputText, imageBase64, chatHistory, i18n.language);
-            // ---- END: โค้ดที่แก้ไข ----
+            const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
 
             if (!response.body) {
                 throw new Error("The response body is empty.");
@@ -93,45 +112,56 @@ const ChatInterface: React.FC = () => {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            let accumulatedText = "";
-            let finalMessageState: ChatMessageType | null = null;
+            let accumulatedJson = "";
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
+                accumulatedJson += decoder.decode(value, { stream: true });
                 
-                if (chunk.includes('---DATA---')) {
-                    const parts = chunk.split('---DATA---');
-                    accumulatedText += parts[0];
-                    
-                    setChatHistory(prev => prev.map(msg => 
-                        msg.id === modelMessageId ? { ...msg, text: accumulatedText.trim(), isLoading: false } : msg
-                    ));
+                // อัปเดตข้อความบนหน้าจอชั่วคราว (อาจจะยังไม่สมบูรณ์)
+                // เพื่อให้ผู้ใช้เห็นว่ามีอะไรเกิดขึ้น
+                setChatHistory(prev => prev.map(msg => 
+                    msg.id === modelMessageId ? { ...msg, text: accumulatedJson } : msg
+                ));
+            }
 
-                    const dataPayload = JSON.parse(parts[1]);
-                    setChatHistory(prev => prev.map(msg => 
-                        msg.id === modelMessageId ? { ...msg, recipe: dataPayload.recipe, videos: dataPayload.videos } : msg
-                    ));
+            // ---- START: ส่วนประมวลผลหลัง Stream จบ ----
+            const parsedData = sanitizeAndParseJson(accumulatedJson);
+            
+            if (parsedData.error) {
+                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.error, error: "Parsing Error" };
+            } else if (parsedData.conversation) {
+                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
+            } else {
+                // ถ้าเป็นสูตรอาหาร, สร้างข้อความและ fetch video
+                finalMessageState = { 
+                    id: modelMessageId, 
+                    role: 'model', 
+                    text: parsedData.responseText,
+                    recipe: parsedData
+                };
 
-                } else {
-                    accumulatedText += chunk;
-                    setChatHistory(prev => prev.map(msg => 
-                        msg.id === modelMessageId ? { ...msg, text: accumulatedText.trim() } : msg
-                    ));
+                // ค้นหาวิดีโอหลังจากได้สูตรอาหารที่สมบูรณ์แล้ว
+                const videoResponse = await fetch('/api/getVideos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dishName: parsedData.dishName, lang: i18n.language }),
+                });
+
+                if (videoResponse.ok) {
+                    const videos = await videoResponse.json();
+                    finalMessageState.videos = videos;
                 }
             }
             
-            setChatHistory(prev => {
-                const newHistory = [...prev];
-                const finalMsgIndex = newHistory.findIndex(msg => msg.id === modelMessageId);
-                if (finalMsgIndex !== -1) {
-                    finalMessageState = newHistory[finalMsgIndex];
-                }
-                return newHistory;
-            });
-            
+            setChatHistory(prev => prev.map(msg => 
+                msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
+            ));
+            // ---- END: ส่วนประมวลผลหลัง Stream จบ ----
+
+
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
