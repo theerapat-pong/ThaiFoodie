@@ -175,8 +175,6 @@ const ChatInterface: React.FC = () => {
                               </button>
                             )}
                             
-                            {/* ---- START: โค้ดที่แก้ไข ---- */}
-                            {/* ใช้ Wrapper และ Class ใหม่เพื่อควบคุมการแสดงผล */}
                             <div className={`auth-button-wrapper ${isLoaded ? 'loaded' : ''}`}>
                                 <SignedIn>
                                     <div style={{ opacity: isLoaded && isSignedIn ? 1 : 0 }}>
@@ -185,18 +183,19 @@ const ChatInterface: React.FC = () => {
                                 </SignedIn>
                                 <SignedOut>
                                     <div style={{ opacity: isLoaded && !isSignedIn ? 1 : 0 }}>
+                                      {/* ---- START: โค้ดที่แก้ไข ---- */}
                                       <Link 
                                         to="/sign-in" 
-                                        className="flex items-center gap-2 text-sm font-semibold text-white bg-gray-800 rounded-lg px-4 py-2 hover:bg-black transition-colors shadow-sm"
+                                        className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
+                                        title={t('sign_in_button')}
                                       >
                                         <LogIn className="w-4 h-4" />
-                                        <span>{t('sign_in_button')}</span>
+                                        <span className="hidden md:inline">{t('sign_in_button')}</span>
                                       </Link>
+                                      {/* ---- END: โค้ดที่แก้ไข ---- */}
                                     </div>
                                 </SignedOut>
                             </div>
-                            {/* ---- END: โค้ดที่แก้ไข ---- */}
-
                         </div>
                     </div>
                 </div>
