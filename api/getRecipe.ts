@@ -53,17 +53,23 @@ function base64ToGenerativePart(base64: string, mimeType: string) {
   return { inlineData: { data: base64, mimeType } };
 }
 
+// ฟังก์ชันสำหรับสร้าง Streaming Response
 function createStreamingResponse(data: any): Response {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
 
+      // ส่งข้อมูลส่วนที่เป็นข้อความ (text) ก่อน
       if (data.text) {
         controller.enqueue(encoder.encode(data.text));
       }
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // ---- START: โค้ดที่แก้ไข ----
+      // เพิ่มระยะเวลาหน่วงเป็น 700 มิลลิวินาที
+      await new Promise(resolve => setTimeout(resolve, 700));
+      // ---- END: โค้ดที่แก้ไข ----
 
+      // ส่งข้อมูลส่วนที่เป็น object (recipe, videos) เป็นก้อนสุดท้าย
       const dataPayload = {
         recipe: data.recipe,
         videos: data.videos,
@@ -79,6 +85,7 @@ function createStreamingResponse(data: any): Response {
   });
 }
 
+// ฟังก์ชันสำหรับค้นหาวิดีโอ
 async function fetchVideos(dishName: string): Promise<any[]> {
     if (!process.env.YOUTUBE_API_KEY) {
         console.error("YouTube API Key is not configured.");

@@ -22,7 +22,12 @@ const ChatInterface: React.FC = () => {
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
-    const { isSignedIn, getToken } = useAuth();
+    
+    // ---- START: โค้ดที่แก้ไข ----
+    // ดึง isLoaded จาก useAuth มาใช้ตรวจสอบสถานะ
+    const { isSignedIn, getToken, isLoaded } = useAuth();
+    // ---- END: โค้ดที่แก้ไข ----
+
     const { user } = useUser();
 
     const examplePrompts = useMemo(() => {
@@ -36,7 +41,8 @@ const ChatInterface: React.FC = () => {
     useEffect(scrollToBottom, [chatHistory]);
 
     useEffect(() => {
-        if (isSignedIn) {
+        // ทำงานเมื่อ isLoaded เป็น true และผู้ใช้ล็อกอินแล้วเท่านั้น
+        if (isLoaded && isSignedIn) {
             const fetchHistory = async () => {
                 const token = await getToken();
                 if (!token) return;
@@ -49,10 +55,10 @@ const ChatInterface: React.FC = () => {
                 }
             };
             fetchHistory();
-        } else {
+        } else if (isLoaded && !isSignedIn) {
             setChatHistory([]);
         }
-    }, [isSignedIn, getToken]);
+    }, [isLoaded, isSignedIn, getToken]);
     
     const handleClearHistory = async () => {
         setChatHistory([]);
@@ -169,21 +175,32 @@ const ChatInterface: React.FC = () => {
                         </Link>
                         <div className="flex items-center gap-4">
                             <LanguageSwitcher />
-                            {chatHistory.length > 0 && (
+                            {isLoaded && chatHistory.length > 0 && (
                               <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors px-3 py-1 rounded-md bg-gray-200/50 hover:bg-red-100/80" title={t('clear_history')}>
                                 {t('clear_history')}
                               </button>
                             )}
-                            <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                            <SignedOut>
-                              <Link 
-                                to="/sign-in" 
-                                className="flex items-center gap-2 text-sm font-semibold text-white bg-gray-800 rounded-lg px-4 py-2 hover:bg-black transition-colors shadow-sm"
-                              >
-                                <LogIn className="w-4 h-4" />
-                                <span>{t('sign_in_button')}</span>
-                              </Link>
-                            </SignedOut>
+
+                            {/* ---- START: โค้ดที่แก้ไข ---- */}
+                            {/* แสดง Skeleton ขณะที่ Clerk กำลังโหลด */}
+                            {!isLoaded ? (
+                                <div className="h-9 w-[100px] bg-gray-200 rounded-lg animate-pulse"></div>
+                            ) : (
+                                <>
+                                    <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
+                                    <SignedOut>
+                                      <Link 
+                                        to="/sign-in" 
+                                        className="flex items-center gap-2 text-sm font-semibold text-white bg-gray-800 rounded-lg px-4 py-2 hover:bg-black transition-colors shadow-sm"
+                                      >
+                                        <LogIn className="w-4 h-4" />
+                                        <span>{t('sign_in_button')}</span>
+                                      </Link>
+                                    </SignedOut>
+                                </>
+                            )}
+                            {/* ---- END: โค้ดที่แก้ไข ---- */}
+
                         </div>
                     </div>
                 </div>
@@ -195,7 +212,7 @@ const ChatInterface: React.FC = () => {
                         <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
                             <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                             <p className="text-2xl font-semibold">
-                                {isSignedIn && user?.firstName ? t('greeting_signed_in', { firstName: user.firstName }) : t('greeting_signed_out')}
+                                {isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}
                             </p>
                             <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
                             <p className="mt-4 text-sm max-w-sm text-gray-500">{t('subheadline')}</p>
