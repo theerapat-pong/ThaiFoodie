@@ -1,21 +1,19 @@
-import React, { useState } from 'react'; // เพิ่ม useState
+import React, { useState } from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
-import { UserIcon, BotIcon, VideoIcon } from './icons'; // เพิ่ม VideoIcon
+import { UserIcon, BotIcon, VideoIcon } from './icons';
 import Loader from './Loader';
 import VideoCard from './VideoCard';
 
 interface ChatMessageProps {
   message: ChatMessageType;
   t: (key: string) => string;
-  // เพิ่ม Prop สำหรับเรียกฟังก์ชันจาก App.tsx
   onFetchVideos: (messageId: string, dishName: string) => void;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) => {
   const isUser = message.role === 'user';
   
-  // State สำหรับจัดการการโหลดวิดีโอของข้อความนี้โดยเฉพาะ
   const [isFetchingVideos, setIsFetchingVideos] = useState(false);
 
   const handleFetchClick = async () => {
@@ -53,8 +51,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
           <div className="mt-4 w-full">
             <RecipeCard recipe={message.recipe} t={t} />
 
-            {/* ---- START: โค้ดที่เพิ่มสำหรับปุ่มขอวิดีโอ ---- */}
-            {/* ถ้ายังไม่มีวิดีโอ ให้แสดงปุ่มนี้ */}
             {!message.videos && (
               <div className="mt-4">
                 <button
@@ -62,21 +58,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
                   disabled={isFetchingVideos}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-wait transition-colors"
                 >
+                  {/* ---- START: โค้ดที่แก้ไข ---- */}
                   {isFetchingVideos ? (
                     <>
                       <Loader />
-                      <span>กำลังค้นหาวิดีโอ...</span>
+                      <span>{t('fetching_videos')}</span>
                     </>
                   ) : (
                     <>
                       <VideoIcon className="w-5 h-5" />
-                      <span>แสดงวิดีโอแนะนำ</span>
+                      <span>{t('show_related_videos')}</span>
                     </>
                   )}
+                  {/* ---- END: โค้ดที่แก้ไข ---- */}
                 </button>
               </div>
             )}
-            {/* ---- END: โค้ดที่เพิ่มสำหรับปุ่มขอวิดีโอ ---- */}
           </div>
         )}
         
