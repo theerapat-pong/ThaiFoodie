@@ -24,9 +24,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
         <div className={`px-4 py-3 rounded-2xl shadow-md ${isUser ? 'bg-gray-800 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'}`}>
           
           {message.isLoading ? (
-            <div className="w-48">
-              <p className="italic text-gray-500 mb-2">{t('thinking')}</p>
+            <div className="flex items-center space-x-2">
               <Loader />
+              <p className="italic text-gray-500">{t('thinking')}</p>
             </div>
           ) : (
             <>
