@@ -18,6 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const userId = claims.sub;
 
+    // ดึงข้อมูลทั้งหมด รวมถึง image
     const { rows } = await sql`
         SELECT id, role, text_content, image, recipe_data, videos_data FROM chat_messages
         WHERE user_id = ${userId}
@@ -28,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: String(row.id),
         role: row.role,
         text: row.text_content || '',
-        image: row.image,
+        image: row.image, // ส่งข้อมูล image กลับไปด้วย
         recipe: row.recipe_data,
         videos: row.videos_data || [],
         isLoading: false,
