@@ -45,7 +45,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
         
         {message.videos && message.videos.length > 0 && (
             <div className="mt-4 w-full">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left">วิดีโอสอนทำอาหารที่เกี่ยวข้อง</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left">{t('related_videos_title')}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {message.videos.map((video: any) => (
                         <VideoCard key={video.id} video={video} />
