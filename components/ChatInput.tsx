@@ -1,7 +1,8 @@
+// src/components/ChatInput.tsx (ฉบับแก้ไข)
+
 import React, { useState, useRef } from 'react';
 import { SendIcon, PaperclipIcon, XIcon } from './icons';
 
-// 1. รับ t function เข้ามาใน props
 interface ChatInputProps {
   onSendMessage: (text: string, imageBase64: string | null) => void;
   isLoading: boolean;
@@ -52,7 +53,9 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, t }) =>
     <div className="bg-white/80 border border-gray-300/80 rounded-2xl p-2 flex items-end shadow-lg backdrop-blur-md">
       {image && (
         <div className="relative mr-2 mb-1 self-center">
-            <img src={image} alt="Preview" className="w-12 h-12 object-cover rounded-lg border border-gray-300" />
+            {/* ---- START: โค้ดที่แก้ไข ---- */}
+            <img src={image} alt="Preview" className="w-12 h-12 object-cover rounded-lg border border-gray-300" loading="lazy" />
+            {/* ---- END: โค้ดที่แก้ไข ---- */}
             <button 
                 onClick={removeImage} 
                 className="absolute -top-1.5 -right-1.5 bg-gray-200 rounded-full p-0.5 text-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200 hover:scale-110"
@@ -80,7 +83,6 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, t }) =>
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        // 2. ใช้ t function กับ placeholder
         placeholder={t('search_placeholder')}
         className="flex-1 bg-transparent resize-none outline-none p-2 text-black placeholder-gray-500 max-h-32 text-base"
         rows={1}

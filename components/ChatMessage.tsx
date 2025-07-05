@@ -1,9 +1,10 @@
+// src/components/ChatMessage.tsx (ฉบับแก้ไข)
+
 import React from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
 import { UserIcon, BotIcon } from './icons';
 
-// 1. รับ t function เข้ามาใน props
 interface ChatMessageProps {
   message: ChatMessageType;
   t: (key: string) => string;
@@ -21,15 +22,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
       )}
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full max-w-lg`}>
         <div className={`px-4 py-3 rounded-2xl shadow-md ${isUser ? 'bg-gray-800 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'}`}>
-          {/* 2. ใช้ t function กับข้อความ loading */}
           {message.isLoading && <p className="italic text-gray-500">{t('thinking')}</p>}
-          {message.image && <img src={message.image} alt="User upload" className="rounded-lg mb-2 max-w-xs max-h-64 object-cover" />}
+
+          {/* ---- START: โค้ดที่แก้ไข ---- */}
+          {message.image && <img src={message.image} alt="User upload" className="rounded-lg mb-2 max-w-xs max-h-64 object-cover" loading="lazy" />}
+          {/* ---- END: โค้ดที่แก้ไข ---- */}
+          
           {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
         </div>
         
         {message.recipe && (
           <div className="mt-4 w-full">
-            {/* 3. ส่ง t function ต่อไปให้ RecipeCard */}
             <RecipeCard recipe={message.recipe} t={t} />
           </div>
         )}

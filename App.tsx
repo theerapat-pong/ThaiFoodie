@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+// src/App.tsx (ฉบับแก้ไข)
+
+import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, lazy } from 'react'; // เพิ่ม Suspense, lazy
 import { Routes, Route, Link } from 'react-router-dom';
-import { SignIn, SignUp, UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { UserButton, useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-react'; // เอา SignIn, SignUp ออก
 import { LogIn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,8 +14,16 @@ import { LogoIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import LanguageSwitcher from './components/LanguageSwitcher';
+import Loader from './components/Loader'; // อาจจะต้องสร้าง Loader component ง่ายๆ
+
+// ---- START: โค้ดที่เพิ่ม ----
+// Dynamic Imports สำหรับหน้า Sign-In และ Sign-Up
+const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignIn })));
+const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
+// ---- END: โค้ดที่เพิ่ม ----
 
 const ChatInterface: React.FC = () => {
+    // ... (โค้ดส่วนของ ChatInterface ไม่มีการเปลี่ยนแปลง) ...
     const { t, i18n } = useTranslation();
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -88,7 +98,7 @@ const ChatInterface: React.FC = () => {
             } else if ('conversation' in result) {
                 finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.conversation };
             } else {
-                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: t('recipe_for', { dishName: result.dishName }), recipe: result as Recipe };
+                finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: t('recipe_for', { dishName: (result as Recipe).dishName }), recipe: result as Recipe };
             }
 
             setChatHistory(prev => prev.map(msg => msg.id === modelLoadingMessage.id ? finalModelMessage : msg));
@@ -121,9 +131,7 @@ const ChatInterface: React.FC = () => {
 
     return (
         <>
-            {/* --- START: โค้ดที่แก้ไข --- */}
             <header className="fixed top-0 left-0 right-0 bg-white/40 backdrop-blur-[24px] z-10 border-b border-black/10">
-            {/* --- END: โค้ดที่แก้ไข --- */}
                 <div className="max-w-3xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-between">
                         <Link to="/" className="flex items-center space-x-3">
@@ -175,11 +183,9 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </div>
             </main>
-
-            <footer className="fixed bottom-0 left-0 right-0">
-                {/* --- START: โค้ดที่แก้ไข --- */}
+            
+             <footer className="fixed bottom-0 left-0 right-0">
                 <div className="bg-white/40 backdrop-blur-[24px] border-t border-black/10">
-                {/* --- END: โค้ดที่แก้ไข --- */}
                     <div className="max-w-3xl mx-auto">
                         <div className="p-4">
                             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
@@ -209,17 +215,34 @@ const ChatInterface: React.FC = () => {
 };
 
 const App: React.FC = () => {
+    // ---- START: โค้ดที่แก้ไข ----
+    // สร้าง Fallback UI ง่ายๆ สำหรับตอนที่คอมโพเนนต์กำลังโหลด
+    const fallbackUI = (
+      <div className="flex justify-center items-center h-screen">
+        <Loader />
+      </div>
+    );
+
     return (
         <div className="bg-gradient-to-br from-gray-50 to-gray-200 text-black min-h-screen flex flex-col font-sans">
             <Analytics />
             <SpeedInsights />
-            <Routes>
-                <Route path="/" element={<ChatInterface />} />
-                <Route path="/sign-in/*" element={<div className="flex justify-center items-center h-screen"><SignIn routing="path" path="/sign-in" afterSignInUrl="/" /></div>} />
-                <Route path="/sign-up/*" element={<div className="flex justify-center items-center h-screen"><SignUp routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} />
-            </Routes>
+            <Suspense fallback={fallbackUI}>
+                <Routes>
+                    <Route path="/" element={<ChatInterface />} />
+                    <Route 
+                        path="/sign-in/*" 
+                        element={<div className="flex justify-center items-center h-screen"><SignInPage routing="path" path="/sign-in" afterSignInUrl="/" /></div>} 
+                    />
+                    <Route 
+                        path="/sign-up/*" 
+                        element={<div className="flex justify-center items-center h-screen"><SignUpPage routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} 
+                    />
+                </Routes>
+            </Suspense>
         </div>
     );
+    // ---- END: โค้ดที่แก้ไข ----
 };
 
 export default App;
