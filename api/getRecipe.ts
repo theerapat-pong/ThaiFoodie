@@ -6,8 +6,6 @@ export const config = {
 
 const API_KEY = process.env.API_KEY;
 
-// ---- START: โค้ดที่แก้ไข ----
-// แก้ไข System Instruction ให้รัดกุมเรื่องภาษาและเพิ่มความเข้มงวด
 const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine. Your primary goal is to provide Thai recipes.
 
 **CRITICAL ANALYSIS & RESPONSE RULES:**
@@ -51,14 +49,12 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
         }
         \`\`\`
 `;
-// ---- END: โค้ดที่แก้ไข ----
 
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
   return { inlineData: { data: base64, mimeType } };
 }
 
-// ฟังก์ชันสำหรับสร้าง Streaming Response
 function createStreamingResponse(data: any): Response {
   const stream = new ReadableStream({
     async start(controller) {
@@ -68,10 +64,7 @@ function createStreamingResponse(data: any): Response {
         controller.enqueue(encoder.encode(data.text));
       }
       
-      // ---- START: โค้ดที่แก้ไข ----
-      // เพิ่มระยะเวลาหน่วงเป็น 1000 มิลลิวินาที (1 วินาที)
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // ---- END: โค้ดที่แก้ไข ----
 
       const dataPayload = {
         recipe: data.recipe,
@@ -88,7 +81,6 @@ function createStreamingResponse(data: any): Response {
   });
 }
 
-// ฟังก์ชันสำหรับค้นหาวิดีโอ
 async function fetchVideos(dishName: string): Promise<any[]> {
     if (!process.env.YOUTUBE_API_KEY) {
         console.error("YouTube API Key is not configured.");
@@ -125,7 +117,11 @@ export default async function handler(request: Request) {
   }
 
   try {
-    const { prompt, imageBase64, history } = await request.json();
+    // ---- START: โค้ดที่แก้ไข ----
+    // อ่าน request body เพียงครั้งเดียว แล้วเก็บข้อมูลใส่ตัวแปร
+    const { prompt, imageBase64, history, lang } = await request.json();
+    // ---- END: โค้ดที่แก้ไข ----
+
     const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const contents: Content[] = (history || [])
@@ -162,22 +158,14 @@ export default async function handler(request: Request) {
 
     let streamData: any = {};
     
-    // ---- START: โค้ดที่แก้ไข ----
-    // ดึงภาษาจาก prompt และ t function มาใช้
-    const { lang } = await request.json(); // สมมติว่าส่ง lang มาจาก frontend
-    // ---- END: โค้ดที่แก้ไข ----
-
     if (parsedData.error) {
         streamData.text = parsedData.error;
     } else if (parsedData.conversation) {
         streamData.text = parsedData.conversation;
     } else {
-        // ---- START: โค้ดที่แก้ไข ----
-        // สร้างข้อความตอบกลับตามภาษาที่ตรวจจับ
         streamData.text = lang === 'th' 
             ? `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ` 
             : `Here is the recipe for ${parsedData.dishName}`;
-        // ---- END: โค้ดที่แก้ไข ----
         streamData.recipe = parsedData;
         streamData.videos = await fetchVideos(parsedData.dishName);
     }
