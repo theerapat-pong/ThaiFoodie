@@ -169,7 +169,7 @@ const ChatInterface: React.FC = () => {
                                 className="flex items-center gap-2 text-sm font-semibold text-white bg-gray-800 rounded-lg px-4 py-2 hover:bg-black transition-colors shadow-sm"
                               >
                                 <LogIn className="w-4 h-4" />
-                                <span>Sign In</span>
+                                <span>{t('sign_in_button')}</span>
                               </Link>
                             </SignedOut>
                         </div>
