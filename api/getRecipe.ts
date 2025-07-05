@@ -108,20 +108,17 @@ async function fetchVideos(dishName: string): Promise<any[]> {
 
 
 export default async function handler(request: Request) {
-  if (!API_KEY) {
-    return new Response(JSON.stringify({ error: "API_KEY ไม่ได้ถูกตั้งค่าบนเซิร์ฟเวอร์" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
-  }
-
+  let responseText = ""; // ประกาศตัวแปรไว้นอก try-block เพื่อใช้ใน catch
   try {
-    // ---- START: โค้ดที่แก้ไข ----
-    // อ่าน request body เพียงครั้งเดียว แล้วเก็บข้อมูลใส่ตัวแปร
-    const { prompt, imageBase64, history, lang } = await request.json();
-    // ---- END: โค้ดที่แก้ไข ----
+    if (!API_KEY) {
+      throw new Error("API_KEY ไม่ได้ถูกตั้งค่าบนเซิร์ฟเวอร์");
+    }
 
+    if (request.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const { prompt, imageBase64, history, lang } = await request.json();
     const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const contents: Content[] = (history || [])
@@ -147,14 +144,25 @@ export default async function handler(request: Request) {
         },
     });
 
-    const responseText = response.text;
+    responseText = response.text; // เก็บข้อความที่ AI ตอบกลับ
     if (!responseText) {
       throw new Error("AI returned an empty response.");
     }
 
-    let jsonStr = responseText.trim().replace(/^```(\w*\s)?/, '').replace(/```$/, '');
-    let sanitizedJsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+    // ---- START: โค้ดที่แก้ไข ----
+    // 1. ทำความสะอาดข้อความ JSON ที่ได้รับมา
+    let jsonStr = responseText
+      .trim()
+      .replace(/^```(json)?\s*/, '') // ลบ ```json ที่อาจจะติดมาตอนต้น
+      .replace(/```$/, '');          // ลบ ``` ที่อาจจะติดมาตอนท้าย
+
+    // 2. ซ่อมแซม Trailing Commas ที่เป็นสาเหตุหลักของปัญหา
+    // Regex นี้จะมองหา comma (,) ที่ตามด้วยช่องว่าง (ถ้ามี) และอยู่ติดกับ } หรือ ] แล้วลบมันทิ้ง
+    const sanitizedJsonStr = jsonStr.replace(/,\s*(?=[}\]])/g, '');
+    
+    // 3. แปลงข้อความที่ซ่อมแล้วเป็น JSON
     const parsedData = JSON.parse(sanitizedJsonStr);
+    // ---- END: โค้ดที่แก้ไข ----
 
     let streamData: any = {};
     
@@ -174,6 +182,8 @@ export default async function handler(request: Request) {
 
   } catch (e) {
     console.error("Vercel Function Error:", e);
+    // เพิ่มการ log ข้อความ JSON ที่มีปัญหาเพื่อช่วยในการแก้ไขครั้งถัดไป
+    console.error("Problematic AI response text:", responseText);
     const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
     return new Response(JSON.stringify({ error: `ขออภัยค่ะ เกิดข้อผิดพลาดบนเซิร์ฟเวอร์: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
