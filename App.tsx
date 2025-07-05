@@ -100,8 +100,6 @@ const ChatInterface: React.FC = () => {
                     )
                 );
 
-                // ---- START: โค้ดที่เพิ่ม ----
-                // ถ้าผู้ใช้ล็อกอินอยู่ ให้เรียก API เพื่อบันทึกวิดีโอลงประวัติ
                 if (isSignedIn) {
                     const token = await getToken();
                     if (token) {
@@ -115,8 +113,6 @@ const ChatInterface: React.FC = () => {
                         });
                     }
                 }
-                // ---- END: โค้ดที่เพิ่ม ----
-
             } else {
                 console.error("Failed to fetch videos");
             }
@@ -179,17 +175,27 @@ const ChatInterface: React.FC = () => {
                 msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
             ));
 
-
+            // ---- START: โค้ดที่แก้ไข ----
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
-                    await fetch('/api/save-chat', {
+                    // รับ Response กลับมาเพื่อเอา newId
+                    const saveResponse = await fetch('/api/save-chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ userMessage, modelMessage: finalMessageState })
                     });
+                    
+                    if (saveResponse.ok) {
+                        const saveData = await saveResponse.json();
+                        // อัปเดต ID ของข้อความใน State ให้เป็น ID จริงจากฐานข้อมูล
+                        setChatHistory(prev => prev.map(msg => 
+                            msg.id === modelMessageId ? { ...msg, id: saveData.newId } : msg
+                        ));
+                    }
                 }
             }
+            // ---- END: โค้ดที่แก้ไข ----
 
         } catch (error) {
             console.error("Error during API stream:", error);
