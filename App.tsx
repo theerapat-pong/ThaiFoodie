@@ -101,7 +101,14 @@ const ChatInterface: React.FC = () => {
             const result = await getRecipeForDish(inputText, imageBase64, historyForApi);
             let finalModelMessage: ChatMessageType;
 
-            if ('error' in result) {
+            if (result.error && result.error.includes('JSON Syntax Error')) {
+                finalModelMessage = { 
+                    id: 'model-' + Date.now(), 
+                    role: 'model', 
+                    text: "ขออภัยค่ะ มีปัญหาในการจัดรูปแบบข้อมูลจาก AI ทำให้ไม่สามารถแสดงสูตรอาหารได้ ลองใหม่อีกครั้งนะคะ", 
+                    error: "AI Recipe Formatting Error" 
+                };
+            } else if ('error' in result) {
                 finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.error, error: result.error };
             } else if ('conversation' in result) {
                 finalModelMessage = { id: 'model-' + Date.now(), role: 'model', text: result.conversation };
