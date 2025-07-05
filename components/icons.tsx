@@ -12,13 +12,11 @@ export const PaperclipIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
   </svg>
 );
 
-// ---- START: โค้ดที่เพิ่มกลับเข้ามา ----
 export const XIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-// ---- END: โค้ดที่เพิ่มกลับเข้ามา ----
 
 export const UserIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,6 +40,14 @@ export const VideoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
+// ---- START: โค้ดที่แก้ไข ----
+// นำโค้ด SVG เดิมกลับมาใช้งาน
 export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <img src="/favicon.svg" alt="ThaiFoodie Logo" {...props} />
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <defs><linearGradient id="t-gradient-light" x1="16" y1="9" x2="16" y2="23"><stop offset="0%" stopColor="#27272a" /><stop offset="100%" stopColor="black" /></linearGradient></defs>
+    <circle cx="16" cy="16" r="15" fill="white" />
+    <path d="M9 9H23V12H18V23H14V12H9V9Z" fill="url(#t-gradient-light)" />
+    <circle cx="16" cy="16" r="15" stroke="black" strokeOpacity="0.1" strokeWidth="1"/>
+  </svg>
 );
+// ---- END: โค้ดที่แก้ไข ----
