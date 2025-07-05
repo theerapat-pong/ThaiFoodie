@@ -1,10 +1,9 @@
-// src/components/ChatMessage.tsx (ฉบับแก้ไข)
-
 import React from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
 import { UserIcon, BotIcon } from './icons';
-import Loader from './Loader'; // Import Loader ที่เราแก้ไขแล้ว
+import Loader from './Loader';
+import VideoCard from './VideoCard'; // Import VideoCard
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -43,6 +42,18 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
             <RecipeCard recipe={message.recipe} t={t} />
           </div>
         )}
+        
+        {message.videos && message.videos.length > 0 && (
+            <div className="mt-4 w-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-left">วิดีโอสอนทำอาหารที่เกี่ยวข้อง</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {message.videos.map((video: any) => (
+                        <VideoCard key={video.id} video={video} />
+                    ))}
+                </div>
+            </div>
+        )}
+
       </div>
       {isUser && (
         <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-900 shadow-md">

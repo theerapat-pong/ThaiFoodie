@@ -1,5 +1,3 @@
-// api/save-chat.ts (เวอร์ชันแก้ไข)
-
 import { sql } from '@vercel/postgres';
 import { Clerk } from '@clerk/clerk-sdk-node';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -28,21 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { userMessage, modelMessage }: { userMessage: ChatMessage, modelMessage: ChatMessage } = req.body;
         const userEmailResult = await clerk.users.getUser(userId);
 
-        /************************************************************/
-        /* ---- START: โค้ดที่แก้ไข ---- */
-        /************************************************************/
-
-        // เพิ่มการตรวจสอบและกำหนดค่าเริ่มต้นเป็น null หากไม่มีอีเมล
-        // เพื่อป้องกัน error ในกรณีที่ผู้ใช้สมัครด้วยวิธีอื่น
         const userEmail = userEmailResult.emailAddresses && userEmailResult.emailAddresses.length > 0
             ? userEmailResult.emailAddresses[0].emailAddress
             : null;
 
-        /**********************************************************/
-        /* ---- END: โค้ดที่แก้ไข ---- */
-        /**********************************************************/
-
-        // บรรทัดนี้ใช้ userEmail ที่ผ่านการตรวจสอบแล้ว
         await sql`INSERT INTO users (id, email) VALUES (${userId}, ${userEmail}) ON CONFLICT (id) DO NOTHING;`;
 
         await sql`
@@ -50,9 +37,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             VALUES (${userId}, 'user', ${userMessage.text});
         `;
         
+        // แก้ไข: เพิ่ม videos_data เข้าไปในคำสั่ง INSERT
         await sql`
-            INSERT INTO chat_messages (user_id, role, text_content, recipe_data)
-            VALUES (${userId}, 'model', ${modelMessage.text}, ${modelMessage.recipe ? JSON.stringify(modelMessage.recipe) : null});
+            INSERT INTO chat_messages (user_id, role, text_content, recipe_data, videos_data)
+            VALUES (${userId}, 'model', ${modelMessage.text}, ${modelMessage.recipe ? JSON.stringify(modelMessage.recipe) : null}, ${modelMessage.videos ? JSON.stringify(modelMessage.videos) : null});
         `;
 
         res.status(200).json({ success: true });

@@ -1,25 +1,17 @@
 import React from 'react';
-
-// สร้าง Type สำหรับ Props ที่จะรับเข้ามา
-interface Video {
-  id: string;
-  title: string;
-  thumbnail: string;
-  channelTitle: string;
-}
+import { Video } from '../types'; // Import Video type
 
 interface VideoCardProps {
   video: Video;
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
-  // สร้าง URL สำหรับเปิดวิดีโอบน YouTube
-  const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
+  const videoUrl = `http://www.youtube.com/watch?v=AvR_dM6qsWM0{video.id}`;
 
   return (
     <a
       href={videoUrl}
-      target="_blank" // เปิดในแท็บใหม่
+      target="_blank"
       rel="noopener noreferrer"
       className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden group"
     >
@@ -32,7 +24,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
       <div className="p-4">
         <h4
           className="font-semibold text-gray-800 text-sm leading-tight truncate-2-lines"
-          title={video.title} // แสดง title เต็มๆ ตอนเอาเมาส์ไปชี้
+          title={video.title}
         >
           {video.title}
         </h4>
@@ -41,13 +33,5 @@ const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
     </a>
   );
 };
-
-// CSS สำหรับตัดข้อความ 2 บรรทัด (เพิ่มใน index.html หรือไฟล์ CSS หลัก)
-// .truncate-2-lines {
-//   display: -webkit-box;
-//   -webkit-line-clamp: 2;
-//   -webkit-box-orient: vertical;
-//   overflow: hidden;
-// }
 
 export default VideoCard;

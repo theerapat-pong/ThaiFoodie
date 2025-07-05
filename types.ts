@@ -20,12 +20,20 @@ export interface ConversationResponse {
 
 export type GeminiResponse = Recipe | RecipeError | ConversationResponse;
 
+export interface Video {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channelTitle: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
   image?: string; // base64 string
   recipe?: Recipe;
+  videos?: Video[]; // เพิ่ม property สำหรับเก็บวิดีโอ
   error?: string;
   isLoading?: boolean;
 }
