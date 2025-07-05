@@ -6,49 +6,48 @@ export const config = {
 
 const API_KEY = process.env.API_KEY;
 
-const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine. Your primary goal is to provide Thai recipes.
+// ---- START: โค้ดที่แก้ไข (System Instruction) ----
+const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine.
 
-**CRITICAL ANALYSIS & RESPONSE RULES:**
+**ABSOLUTE RULES:**
 
-1.  **DETECT USER'S LANGUAGE:** First, you MUST detect the language from the user's most recent message. Your entire response must be in that detected language (Thai or English).
-2.  **ANALYZE USER INTENT:** Determine if the user is asking for a Thai recipe.
-3.  **CHOOSE RESPONSE SCHEMA:** Based on the intent, you MUST respond with ONLY ONE of the following JSON schemas. Your entire response must be a single, raw, perfectly-formed JSON object. **Crucially, there must be no trailing commas in any JSON arrays or objects.**
+1.  **DETECT LANGUAGE:** Your first and most critical task is to determine the user's language (Thai or English) from their most recent prompt.
+2.  **STRICT LANGUAGE ADHERENCE:** ALL parts of your response, without exception, MUST be in the single language you detected in step 1. Do not mix languages.
+3.  **JSON SCHEMA:** You MUST respond with ONLY ONE of the following JSON schemas. The entire response must be a single, raw, perfectly-formed JSON object. There must be no trailing commas.
 
     * **SCHEMA A: For Thai Recipe Requests**
-        If the user wants a Thai recipe, use this schema.
-        -   **All JSON *keys* MUST remain in English.**
-        -   **All JSON *values* must be ONLY in the language you detected in step 1. Do NOT add translations in parentheses.**
+        -   All JSON **keys** MUST remain in English.
+        -   All JSON **values** (like dishName, ingredients, instructions, etc.) MUST be strictly in the user's detected language. For example, if the user asks in English for "Pad Krapow", the dishName MUST be "Pad Krapow", NOT "ผัดกระเพรา". If they ask in Thai, it MUST be "ผัดกระเพรา".
 
         \`\`\`json
         {
-          "dishName": "The name of the dish in the user's language.",
+          "dishName": "The name of the dish, strictly in the user's language.",
           "ingredients": [
-            { "name": "Ingredient name in user's language", "amount": "Quantity in user's language" }
+            { "name": "Ingredient name, strictly in the user's language.", "amount": "Quantity, strictly in the user's language." }
           ],
           "instructions": [
-            "Step 1 in user's language.",
-            "Step 2 in user's language."
+            "Step 1, strictly in the user's language.",
+            "Step 2, strictly in the user's language."
           ],
-          "calories": "Estimated total calorie count as a string, e.g., 'ประมาณ 350-450 kcal'"
+          "calories": "Estimated total calorie count, e.g., 'ประมาณ 350-450 kcal' or 'Approx. 350-450 kcal'"
         }
         \`\`\`
 
     * **SCHEMA B: For Other Conversations**
-        If the user is not asking for a recipe (e.g., greetings, general questions), use this schema.
         \`\`\`json
         {
-          "conversation": "Your friendly, conversational response in the user's language."
+          "conversation": "Your friendly response, strictly in the user's detected language."
         }
         \`\`\`
 
-    * **SCHEMA C: For Errors / Unidentified Dishes**
-        If you cannot identify the food as a Thai dish, or the request is unclear, use this schema.
+    * **SCHEMA C: For Errors**
         \`\`\`json
         {
-          "error": "A polite message in the user's language explaining the issue."
+          "error": "A polite error message, strictly in the user's detected language."
         }
         \`\`\`
 `;
+// ---- END: โค้ดที่แก้ไข (System Instruction) ----
 
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
@@ -81,13 +80,17 @@ function createStreamingResponse(data: any): Response {
   });
 }
 
-async function fetchVideos(dishName: string): Promise<any[]> {
+// ---- START: โค้ดที่แก้ไข (fetchVideos) ----
+async function fetchVideos(dishName: string, lang: string): Promise<any[]> {
     if (!process.env.YOUTUBE_API_KEY) {
         console.error("YouTube API Key is not configured.");
         return [];
     }
     try {
-        const query = `วิธีทำ ${dishName}`;
+        // เปลี่ยนคำค้นหาตามภาษาที่ได้รับ
+        const queryPrefix = (lang === 'th' || !lang) ? 'วิธีทำ' : 'How to make';
+        const query = `${queryPrefix} ${dishName}`;
+
         const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&key=${process.env.YOUTUBE_API_KEY}&type=video&maxResults=5&videoEmbeddable=true`;
         const youtubeResponse = await fetch(youtubeApiUrl);
         if (youtubeResponse.ok) {
@@ -105,6 +108,7 @@ async function fetchVideos(dishName: string): Promise<any[]> {
         return [];
     }
 }
+// ---- END: โค้ดที่แก้ไข (fetchVideos) ----
 
 
 export default async function handler(request: Request) {
@@ -118,11 +122,8 @@ export default async function handler(request: Request) {
       return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // ---- START: โค้ดที่แก้ไข ----
-    // อ่าน request body ทั้งหมดเพียงครั้งเดียว
     const body = await request.json();
     const { prompt, imageBase64, history, lang } = body;
-    // ---- END: โค้ดที่แก้ไข ----
 
     const ai = new GoogleGenAI({ apiKey: API_KEY });
 
@@ -170,15 +171,14 @@ export default async function handler(request: Request) {
     } else if (parsedData.conversation) {
         streamData.text = parsedData.conversation;
     } else {
-        // ---- START: โค้ดที่แก้ไข ----
-        // ตรวจสอบภาษา (lang) ที่ส่งมาจาก Frontend ก่อนสร้างข้อความ
-        streamData.text = (lang === 'th' || !lang) // ถ้าไม่มี lang ให้ใช้ภาษาไทยเป็นค่าเริ่มต้น
+        streamData.text = (lang === 'th' || !lang) 
             ? `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ` 
             : `Here is the recipe for ${parsedData.dishName}`;
-        // ---- END: โค้ดที่แก้ไข ----
-
+        
         streamData.recipe = parsedData;
-        streamData.videos = await fetchVideos(parsedData.dishName);
+        // ---- START: โค้ดที่แก้ไข (ส่ง lang ไปด้วย) ----
+        streamData.videos = await fetchVideos(parsedData.dishName, lang);
+        // ---- END: โค้ดที่แก้ไข (ส่ง lang ไปด้วย) ----
     }
     
     return createStreamingResponse(streamData);
