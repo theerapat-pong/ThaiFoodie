@@ -53,12 +53,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
 
             {!message.videos && (
               <div className="mt-4">
+                {/* ---- START: โค้ดที่แก้ไข ---- */}
                 <button
                   onClick={handleFetchClick}
                   disabled={isFetchingVideos}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-wait transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-black disabled:bg-gray-500 disabled:cursor-wait transition-all duration-200 active:scale-95"
                 >
-                  {/* ---- START: โค้ดที่แก้ไข ---- */}
+                {/* ---- END: โค้ดที่แก้ไข ---- */}
                   {isFetchingVideos ? (
                     <>
                       <Loader />
@@ -70,7 +71,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
                       <span>{t('show_related_videos')}</span>
                     </>
                   )}
-                  {/* ---- END: โค้ดที่แก้ไข ---- */}
                 </button>
               </div>
             )}
