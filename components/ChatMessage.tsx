@@ -23,12 +23,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full max-w-lg`}>
         <div className={`px-4 py-3 rounded-2xl shadow-md ${isUser ? 'bg-gray-800 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'}`}>
           
+          {/* ---- START: โค้ดที่แก้ไข ---- */}
           {message.isLoading ? (
             <div className="flex items-center space-x-2">
-              <Loader />
               <p className="italic text-gray-500">{t('thinking')}</p>
+              <Loader />
             </div>
           ) : (
+          {/* ---- END: โค้ดที่แก้ไข ---- */}
             <>
               {message.image && <img src={message.image} alt="User upload" className="rounded-lg mb-2 max-w-xs max-h-64 object-cover" loading="lazy" />}
               {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
