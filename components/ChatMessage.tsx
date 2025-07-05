@@ -32,7 +32,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
         </div>
       )}
 
-      {/* ---- START: โค้ดที่แก้ไขโครงสร้างทั้งหมด ---- */}
       <div className={`flex flex-col w-full ${isUser ? 'items-end' : 'items-start'}`}>
         
         {/* ส่วนที่ 1: กล่องข้อความ และ สูตรอาหาร (จำกัดความกว้าง) */}
@@ -76,7 +75,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
         )}
 
       </div>
-      {/* ---- END: โค้ดที่แก้ไขโครงสร้างทั้งหมด ---- */}
 
       {isUser && (
         <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-900 shadow-md">
@@ -86,3 +84,5 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t }) => {
     </div>
   );
 };
+
+export default ChatMessage;
