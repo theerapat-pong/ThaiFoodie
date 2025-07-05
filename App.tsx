@@ -18,16 +18,10 @@ const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ def
 const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
 
 
-// ฟังก์ชันสำหรับซ่อม JSON ที่ทนทานขึ้น
 function sanitizeAndParseJson(jsonString: string): any {
     try {
-        // 1. ลบ ```json และ ``` ที่อาจจะติดมา
         let cleanedString = jsonString.trim().replace(/^```(json)?\s*/, '').replace(/```$/, '');
-
-        // 2. ซ่อม Trailing Commas ที่เป็นสาเหตุหลักของปัญหา
         cleanedString = cleanedString.replace(/,\s*(?=[}\]])/g, '');
-
-        // 3. ลอง Parse ตามปกติ
         return JSON.parse(cleanedString);
     } catch (error) {
         console.error("JSON parsing failed:", error);
@@ -90,6 +84,47 @@ const ChatInterface: React.FC = () => {
         }
     };
 
+    const handleFetchVideos = async (messageId: string, dishName: string) => {
+        try {
+            const response = await fetch('/api/getVideos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishName, lang: i18n.language }),
+            });
+
+            if (response.ok) {
+                const videos = await response.json();
+                setChatHistory(prev =>
+                    prev.map(msg =>
+                        msg.id === messageId ? { ...msg, videos } : msg
+                    )
+                );
+
+                // ---- START: โค้ดที่เพิ่ม ----
+                // ถ้าผู้ใช้ล็อกอินอยู่ ให้เรียก API เพื่อบันทึกวิดีโอลงประวัติ
+                if (isSignedIn) {
+                    const token = await getToken();
+                    if (token) {
+                        await fetch('/api/update-chat-message', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ messageId, videos }),
+                        });
+                    }
+                }
+                // ---- END: โค้ดที่เพิ่ม ----
+
+            } else {
+                console.error("Failed to fetch videos");
+            }
+        } catch (error) {
+            console.error("Error fetching videos:", error);
+        }
+    };
+
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
 
@@ -104,7 +139,7 @@ const ChatInterface: React.FC = () => {
         let finalMessageState: ChatMessageType | null = null;
 
         try {
-            const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
+            const response = await getRecipeForDish(inputText, imageBase64, chatHistory, i18n.language);
 
             if (!response.body) {
                 throw new Error("The response body is empty.");
@@ -120,14 +155,11 @@ const ChatInterface: React.FC = () => {
 
                 accumulatedJson += decoder.decode(value, { stream: true });
                 
-                // อัปเดตข้อความบนหน้าจอชั่วคราว (อาจจะยังไม่สมบูรณ์)
-                // เพื่อให้ผู้ใช้เห็นว่ามีอะไรเกิดขึ้น
                 setChatHistory(prev => prev.map(msg => 
                     msg.id === modelMessageId ? { ...msg, text: accumulatedJson } : msg
                 ));
             }
 
-            // ---- START: ส่วนประมวลผลหลัง Stream จบ ----
             const parsedData = sanitizeAndParseJson(accumulatedJson);
             
             if (parsedData.error) {
@@ -135,31 +167,17 @@ const ChatInterface: React.FC = () => {
             } else if (parsedData.conversation) {
                 finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
             } else {
-                // ถ้าเป็นสูตรอาหาร, สร้างข้อความและ fetch video
                 finalMessageState = { 
                     id: modelMessageId, 
                     role: 'model', 
                     text: parsedData.responseText,
                     recipe: parsedData
                 };
-
-                // ค้นหาวิดีโอหลังจากได้สูตรอาหารที่สมบูรณ์แล้ว
-                const videoResponse = await fetch('/api/getVideos', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dishName: parsedData.dishName, lang: i18n.language }),
-                });
-
-                if (videoResponse.ok) {
-                    const videos = await videoResponse.json();
-                    finalMessageState.videos = videos;
-                }
             }
             
             setChatHistory(prev => prev.map(msg => 
                 msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
             ));
-            // ---- END: ส่วนประมวลผลหลัง Stream จบ ----
 
 
             if (isSignedIn) {
@@ -250,7 +268,7 @@ const ChatInterface: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-6">
-                        {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} /> ))}
+                        {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} onFetchVideos={handleFetchVideos} /> ))}
                         <div ref={chatEndRef} />
                     </div>
                 </div>
