@@ -6,17 +6,20 @@ export const config = {
 
 const API_KEY = process.env.API_KEY;
 
+// ---- START: โค้ดที่แก้ไข ----
+// แก้ไข System Instruction ให้รัดกุมเรื่องภาษาและเพิ่มความเข้มงวด
 const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine. Your primary goal is to provide Thai recipes.
 
 **CRITICAL ANALYSIS & RESPONSE RULES:**
 
-1.  **ANALYZE USER INTENT:** Determine if the user is asking for a Thai recipe.
-2.  **CHOOSE RESPONSE SCHEMA:** Based on the intent, you MUST respond with ONLY ONE of the following JSON schemas. Your entire response must be a single, raw, perfectly-formed JSON object. **Crucially, there must be no trailing commas in any JSON arrays or objects.**
+1.  **DETECT USER'S LANGUAGE:** First, you MUST detect the language from the user's most recent message. Your entire response must be in that detected language (Thai or English).
+2.  **ANALYZE USER INTENT:** Determine if the user is asking for a Thai recipe.
+3.  **CHOOSE RESPONSE SCHEMA:** Based on the intent, you MUST respond with ONLY ONE of the following JSON schemas. Your entire response must be a single, raw, perfectly-formed JSON object. **Crucially, there must be no trailing commas in any JSON arrays or objects.**
 
     * **SCHEMA A: For Thai Recipe Requests**
         If the user wants a Thai recipe, use this schema.
         -   **All JSON *keys* MUST remain in English.**
-        -   **All JSON *values* must be ONLY in the user's detected language (Thai or English). Do NOT add English translations in parentheses.**
+        -   **All JSON *values* must be ONLY in the language you detected in step 1. Do NOT add translations in parentheses.**
 
         \`\`\`json
         {
@@ -48,6 +51,8 @@ const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable
         }
         \`\`\`
 `;
+// ---- END: โค้ดที่แก้ไข ----
+
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
   return { inlineData: { data: base64, mimeType } };
@@ -59,17 +64,15 @@ function createStreamingResponse(data: any): Response {
     async start(controller) {
       const encoder = new TextEncoder();
 
-      // ส่งข้อมูลส่วนที่เป็นข้อความ (text) ก่อน
       if (data.text) {
         controller.enqueue(encoder.encode(data.text));
       }
       
       // ---- START: โค้ดที่แก้ไข ----
-      // เพิ่มระยะเวลาหน่วงเป็น 700 มิลลิวินาที
-      await new Promise(resolve => setTimeout(resolve, 700));
+      // เพิ่มระยะเวลาหน่วงเป็น 1000 มิลลิวินาที (1 วินาที)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       // ---- END: โค้ดที่แก้ไข ----
 
-      // ส่งข้อมูลส่วนที่เป็น object (recipe, videos) เป็นก้อนสุดท้าย
       const dataPayload = {
         recipe: data.recipe,
         videos: data.videos,
@@ -158,13 +161,23 @@ export default async function handler(request: Request) {
     const parsedData = JSON.parse(sanitizedJsonStr);
 
     let streamData: any = {};
+    
+    // ---- START: โค้ดที่แก้ไข ----
+    // ดึงภาษาจาก prompt และ t function มาใช้
+    const { lang } = await request.json(); // สมมติว่าส่ง lang มาจาก frontend
+    // ---- END: โค้ดที่แก้ไข ----
 
     if (parsedData.error) {
         streamData.text = parsedData.error;
     } else if (parsedData.conversation) {
         streamData.text = parsedData.conversation;
     } else {
-        streamData.text = `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ`;
+        // ---- START: โค้ดที่แก้ไข ----
+        // สร้างข้อความตอบกลับตามภาษาที่ตรวจจับ
+        streamData.text = lang === 'th' 
+            ? `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ` 
+            : `Here is the recipe for ${parsedData.dishName}`;
+        // ---- END: โค้ดที่แก้ไข ----
         streamData.recipe = parsedData;
         streamData.videos = await fetchVideos(parsedData.dishName);
     }

@@ -22,12 +22,7 @@ const ChatInterface: React.FC = () => {
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
-    
-    // ---- START: โค้ดที่แก้ไข ----
-    // ดึง isLoaded จาก useAuth มาใช้ตรวจสอบสถานะ
     const { isSignedIn, getToken, isLoaded } = useAuth();
-    // ---- END: โค้ดที่แก้ไข ----
-
     const { user } = useUser();
 
     const examplePrompts = useMemo(() => {
@@ -41,7 +36,6 @@ const ChatInterface: React.FC = () => {
     useEffect(scrollToBottom, [chatHistory]);
 
     useEffect(() => {
-        // ทำงานเมื่อ isLoaded เป็น true และผู้ใช้ล็อกอินแล้วเท่านั้น
         if (isLoaded && isSignedIn) {
             const fetchHistory = async () => {
                 const token = await getToken();
@@ -180,15 +174,17 @@ const ChatInterface: React.FC = () => {
                                 {t('clear_history')}
                               </button>
                             )}
-
+                            
                             {/* ---- START: โค้ดที่แก้ไข ---- */}
-                            {/* แสดง Skeleton ขณะที่ Clerk กำลังโหลด */}
-                            {!isLoaded ? (
-                                <div className="h-9 w-[100px] bg-gray-200 rounded-lg animate-pulse"></div>
-                            ) : (
-                                <>
-                                    <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                                    <SignedOut>
+                            {/* ใช้ Wrapper และ Class ใหม่เพื่อควบคุมการแสดงผล */}
+                            <div className={`auth-button-wrapper ${isLoaded ? 'loaded' : ''}`}>
+                                <SignedIn>
+                                    <div style={{ opacity: isLoaded && isSignedIn ? 1 : 0 }}>
+                                        <UserButton afterSignOutUrl="/" />
+                                    </div>
+                                </SignedIn>
+                                <SignedOut>
+                                    <div style={{ opacity: isLoaded && !isSignedIn ? 1 : 0 }}>
                                       <Link 
                                         to="/sign-in" 
                                         className="flex items-center gap-2 text-sm font-semibold text-white bg-gray-800 rounded-lg px-4 py-2 hover:bg-black transition-colors shadow-sm"
@@ -196,9 +192,9 @@ const ChatInterface: React.FC = () => {
                                         <LogIn className="w-4 h-4" />
                                         <span>{t('sign_in_button')}</span>
                                       </Link>
-                                    </SignedOut>
-                                </>
-                            )}
+                                    </div>
+                                </SignedOut>
+                            </div>
                             {/* ---- END: โค้ดที่แก้ไข ---- */}
 
                         </div>
