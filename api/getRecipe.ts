@@ -87,7 +87,6 @@ export default async function handler(request: Request) {
 
     const streamingResponse = await ai.models.generateContentStream(req);
 
-    // สร้าง ReadableStream ใหม่เพื่อส่งข้อมูลกลับไปให้ client
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
