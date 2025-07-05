@@ -12,6 +12,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.32.4",
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/localizations": "^3.17.3",
     "@google/genai": "^0.12.0",
     "@vercel/analytics": "^1.2.2",
     "@vercel/postgres": "^0.10.0",
