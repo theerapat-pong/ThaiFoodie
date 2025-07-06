@@ -80,7 +80,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, t }) =>
         )}
 
         {/* ส่วน Textarea และปุ่ม */}
-        <div className="flex items-end space-x-3">
+        <div className="flex items-center space-x-3">
           <button 
             onClick={() => fileInputRef.current?.click()} 
             className="flex-shrink-0 p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
