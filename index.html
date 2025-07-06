@@ -63,10 +63,28 @@
         animation: popUp 0.3s ease-out forwards;
       }
 
+      /* === โค้ดที่เพิ่มเข้ามา === */
+      @keyframes twinkle {
+        0%, 100% { 
+            opacity: 0.1;
+        }
+        50% { 
+            opacity: 1;
+        }
+      }
+      
+      html {
+        scroll-behavior: smooth;
+      }
 
       body {
         font-family: 'Sarabun', sans-serif;
+        background-color: #0d0d0d; /* เปลี่ยนพื้นหลังเป็นสีดำ */
+        color: #EAEAEA; /* เปลี่ยนสีตัวอักษรหลักเป็นสีอ่อน */
+        overflow-x: hidden;
       }
+      /* === จบส่วนที่เพิ่มเข้ามา === */
+
       ::-webkit-scrollbar {
         width: 8px;
       }
@@ -89,7 +107,7 @@
       }
     </style>
   </head>
-  <body class="bg-gradient-to-br from-gray-50 to-gray-200">
+  <body>
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5JRQJCJP"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="root"></div>
