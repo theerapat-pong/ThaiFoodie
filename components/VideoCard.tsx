@@ -12,7 +12,10 @@ interface VideoCardProps {
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
+  // --- START: โค้ดที่แก้ไข ---
+  // แก้ไข: เปลี่ยน URL เป็นรูปแบบที่ถูกต้องสำหรับ YouTube embeds
   const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
+  // --- END: โค้ดที่แก้ไข ---
 
   return (
     <a

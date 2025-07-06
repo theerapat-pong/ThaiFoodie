@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
+import { GoogleGenAI, Content, GenerateContentRequest, SystemInstruction } from "@google/genai";
 
 export const config = {
   runtime: 'edge',
@@ -6,127 +6,60 @@ export const config = {
 
 const API_KEY = process.env.API_KEY;
 
-// ---- START: โค้ดที่แก้ไข ----
-// แก้ไข System Instruction ให้รัดกุมเรื่องภาษาและเพิ่มความเข้มงวด
-const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine. Your primary goal is to provide Thai recipes.
+// --- START: โค้ดที่แก้ไข ---
+// ปรับปรุง System Instruction ให้กระชับและชัดเจนขึ้น
+const systemInstruction: SystemInstruction = {
+  role: "model",
+  parts: [{
+    text: `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine.
 
-**CRITICAL ANALYSIS & RESPONSE RULES:**
+**Core Directives:**
+1.  **Language First:** Always detect the user's language (Thai or English) from their latest prompt. Your entire response MUST be in that single language.
+2.  **Strict JSON Output:** You MUST ONLY respond with a single, raw, perfectly-formed JSON object. No markdown, no extra text. Keys must be in English.
 
-1.  **DETECT USER'S LANGUAGE:** First, you MUST detect the language from the user's most recent message. Your entire response must be in that detected language (Thai or English).
-2.  **ANALYZE USER INTENT:** Determine if the user is asking for a Thai recipe.
-3.  **CHOOSE RESPONSE SCHEMA:** Based on the intent, you MUST respond with ONLY ONE of the following JSON schemas. Your entire response must be a single, raw, perfectly-formed JSON object. **Crucially, there must be no trailing commas in any JSON arrays or objects.**
+**Response Schemas (Choose ONE):**
 
-    * **SCHEMA A: For Thai Recipe Requests**
-        If the user wants a Thai recipe, use this schema.
-        -   **All JSON *keys* MUST remain in English.**
-        -   **All JSON *values* must be ONLY in the language you detected in step 1. Do NOT add translations in parentheses.**
+* **A) Recipe Found:** If the user asks for a Thai recipe, use this schema. All string values must be in the detected user language.
+    \`\`\`json
+    {
+      "responseText": "A friendly intro, e.g., 'Here is the recipe for [Dish Name].' or 'นี่คือสูตรสำหรับ [ชื่ออาหาร] ค่ะ'",
+      "dishName": "Dish name",
+      "ingredients": [ { "name": "Ingredient name", "amount": "Quantity" } ],
+      "instructions": [ "Step 1", "Step 2" ],
+      "calories": "Estimated total calories (e.g., '550 kcal')"
+    }
+    \`\`\`
 
-        \`\`\`json
-        {
-          "dishName": "The name of the dish in the user's language.",
-          "ingredients": [
-            { "name": "Ingredient name in user's language", "amount": "Quantity in user's language" }
-          ],
-          "instructions": [
-            "Step 1 in user's language.",
-            "Step 2 in user's language."
-          ],
-          "calories": "Estimated total calorie count as a string, e.g., 'ประมาณ 350-450 kcal'"
-        }
-        \`\`\`
+* **B) No Recipe / Conversation:** For greetings, non-recipe questions, or if you can't find a recipe.
+    \`\`\`json
+    {
+      "conversation": "Your conversational response in the user's language."
+    }
+    \`\`\`
 
-    * **SCHEMA B: For Other Conversations**
-        If the user is not asking for a recipe (e.g., greetings, general questions), use this schema.
-        \`\`\`json
-        {
-          "conversation": "Your friendly, conversational response in the user's language."
-        }
-        \`\`\`
-
-    * **SCHEMA C: For Errors / Unidentified Dishes**
-        If you cannot identify the food as a Thai dish, or the request is unclear, use this schema.
-        \`\`\`json
-        {
-          "error": "A polite message in the user's language explaining the issue."
-        }
-        \`\`\`
-`;
-// ---- END: โค้ดที่แก้ไข ----
-
+* **C) Error:** If the request is unclear or invalid.
+    \`\`\`json
+    {
+       "error": "A polite error message in the user's language."
+    }
+    \`\`\`
+`
+  }]
+};
+// --- END: โค้ดที่แก้ไข ---
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
   return { inlineData: { data: base64, mimeType } };
 }
 
-// ฟังก์ชันสำหรับสร้าง Streaming Response
-function createStreamingResponse(data: any): Response {
-  const stream = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
-
-      if (data.text) {
-        controller.enqueue(encoder.encode(data.text));
-      }
-      
-      // ---- START: โค้ดที่แก้ไข ----
-      // เพิ่มระยะเวลาหน่วงเป็น 1000 มิลลิวินาที (1 วินาที)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // ---- END: โค้ดที่แก้ไข ----
-
-      const dataPayload = {
-        recipe: data.recipe,
-        videos: data.videos,
-      };
-      controller.enqueue(encoder.encode('---DATA---' + JSON.stringify(dataPayload)));
-      
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  });
-}
-
-// ฟังก์ชันสำหรับค้นหาวิดีโอ
-async function fetchVideos(dishName: string): Promise<any[]> {
-    if (!process.env.YOUTUBE_API_KEY) {
-        console.error("YouTube API Key is not configured.");
-        return [];
-    }
-    try {
-        const query = `วิธีทำ ${dishName}`;
-        const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&key=${process.env.YOUTUBE_API_KEY}&type=video&maxResults=5&videoEmbeddable=true`;
-        const youtubeResponse = await fetch(youtubeApiUrl);
-        if (youtubeResponse.ok) {
-            const youtubeData = await youtubeResponse.json();
-            return youtubeData.items.map((item: any) => ({
-                id: item.id.videoId,
-                title: item.snippet.title,
-                thumbnail: item.snippet.thumbnails.high.url,
-                channelTitle: item.snippet.channelTitle,
-            }));
-        }
-        return [];
-    } catch (error) {
-        console.error("Failed to fetch videos:", error);
-        return [];
-    }
-}
-
-
 export default async function handler(request: Request) {
-  if (!API_KEY) {
-    return new Response(JSON.stringify({ error: "API_KEY ไม่ได้ถูกตั้งค่าบนเซิร์ฟเวอร์" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
-  }
-
   try {
+    if (!API_KEY) {
+      throw new Error("API_KEY is not configured on the server.");
+    }
+
     const { prompt, imageBase64, history } = await request.json();
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const genAI = new GoogleGenAI(API_KEY);
 
     const contents: Content[] = (history || [])
       .filter((msg: any) => (msg.role === 'user' || msg.role === 'model') && !msg.isLoading && msg.text)
@@ -141,52 +74,37 @@ export default async function handler(request: Request) {
     } else {
       contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
-    
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: contents,
-        config: {
-          systemInstruction: systemInstruction,
-          responseMimeType: "application/json",
-        },
+
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction,
+        generationConfig: {
+            responseMimeType: "application/json",
+        }
     });
 
-    const responseText = response.text;
-    if (!responseText) {
-      throw new Error("AI returned an empty response.");
-    }
+    const result = await model.generateContentStream(contents);
 
-    let jsonStr = responseText.trim().replace(/^```(\w*\s)?/, '').replace(/```$/, '');
-    let sanitizedJsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
-    const parsedData = JSON.parse(sanitizedJsonStr);
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            controller.enqueue(encoder.encode(text));
+          }
+        }
+        controller.close();
+      },
+    });
 
-    let streamData: any = {};
-    
-    // ---- START: โค้ดที่แก้ไข ----
-    // ดึงภาษาจาก prompt และ t function มาใช้
-    const { lang } = await request.json(); // สมมติว่าส่ง lang มาจาก frontend
-    // ---- END: โค้ดที่แก้ไข ----
-
-    if (parsedData.error) {
-        streamData.text = parsedData.error;
-    } else if (parsedData.conversation) {
-        streamData.text = parsedData.conversation;
-    } else {
-        // ---- START: โค้ดที่แก้ไข ----
-        // สร้างข้อความตอบกลับตามภาษาที่ตรวจจับ
-        streamData.text = lang === 'th' 
-            ? `นี่คือสูตรสำหรับ ${parsedData.dishName} ค่ะ` 
-            : `Here is the recipe for ${parsedData.dishName}`;
-        // ---- END: โค้ดที่แก้ไข ----
-        streamData.recipe = parsedData;
-        streamData.videos = await fetchVideos(parsedData.dishName);
-    }
-    
-    return createStreamingResponse(streamData);
+    return new Response(stream, {
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
 
   } catch (e) {
     console.error("Vercel Function Error:", e);
     const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
-    return new Response(JSON.stringify({ error: `ขออภัยค่ะ เกิดข้อผิดพลาดบนเซิร์ฟเวอร์: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: `Server error: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

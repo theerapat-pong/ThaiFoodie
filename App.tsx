@@ -17,6 +17,20 @@ import Loader from './components/Loader';
 const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignIn })));
 const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
 
+
+function sanitizeAndParseJson(jsonString: string): any {
+    try {
+        let cleanedString = jsonString.trim().replace(/^```(json)?\s*/, '').replace(/```$/, '');
+        cleanedString = cleanedString.replace(/,\s*(?=[}\]])/g, '');
+        return JSON.parse(cleanedString);
+    } catch (error) {
+        console.error("JSON parsing failed:", error);
+        console.error("Problematic JSON string:", jsonString);
+        return { error: `ขออภัยค่ะ มีปัญหาในการอ่านข้อมูลจาก AI: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    }
+}
+
+
 const ChatInterface: React.FC = () => {
     const { t, i18n } = useTranslation();
     const [chatHistory, setChatHistory] = useState<ChatMessageType[]>([]);
@@ -53,7 +67,7 @@ const ChatInterface: React.FC = () => {
             setChatHistory([]);
         }
     }, [isLoaded, isSignedIn, getToken]);
-    
+
     const handleClearHistory = async () => {
         setChatHistory([]);
         if (isSignedIn) {
@@ -70,16 +84,67 @@ const ChatInterface: React.FC = () => {
         }
     };
 
+    const handleFetchVideos = async (messageId: string, dishName: string) => {
+        try {
+            const response = await fetch('/api/getVideos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishName, lang: i18n.language }),
+            });
+
+            if (response.ok) {
+                const videos = await response.json();
+                setChatHistory(prev =>
+                    prev.map(msg =>
+                        msg.id === messageId ? { ...msg, videos } : msg
+                    )
+                );
+
+                if (isSignedIn) {
+                    const token = await getToken();
+                    if (token) {
+                        await fetch('/api/update-chat-message', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ messageId, videos }),
+                        });
+                    }
+                }
+            } else {
+                 // --- START: โค้ดที่แก้ไข ---
+                // จัดการกับข้อผิดพลาดที่ตอบกลับมาจาก API
+                const errorData = await response.json();
+                console.error("Failed to fetch videos:", errorData.error || "Unknown error");
+                // อัปเดต UI เพื่อแจ้งผู้ใช้ (อาจจะแสดงเป็น toast notification หรือข้อความในแชท)
+                setChatHistory(prev =>
+                    prev.map(msg =>
+                        msg.id === messageId
+                            ? { ...msg, error: `Video fetch error: ${errorData.error || "Please try again later."}` }
+                            : msg
+                    )
+                );
+                // --- END: โค้ดที่แก้ไข ---
+            }
+        } catch (error) {
+            console.error("Error fetching videos:", error);
+        }
+    };
+
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
 
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
-        
+
         const modelMessageId = 'model-' + Date.now();
         const initialModelMessage: ChatMessageType = { id: modelMessageId, role: 'model', text: '', isLoading: true };
 
         setChatHistory(prev => [...prev, userMessage, initialModelMessage]);
         setIsLoading(true);
+
+        let finalMessageState: ChatMessageType | null = null;
 
         try {
             const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
@@ -90,73 +155,73 @@ const ChatInterface: React.FC = () => {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            let accumulatedText = "";
-            let finalMessageState: ChatMessageType | null = null;
+            let accumulatedJson = "";
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                
-                if (chunk.includes('---DATA---')) {
-                    const parts = chunk.split('---DATA---');
-                    accumulatedText += parts[0];
-                    
-                    setChatHistory(prev => prev.map(msg => 
-                        msg.id === modelMessageId ? { ...msg, text: accumulatedText.trim(), isLoading: false } : msg
-                    ));
-
-                    const dataPayload = JSON.parse(parts[1]);
-                    setChatHistory(prev => prev.map(msg => 
-                        msg.id === modelMessageId ? { ...msg, recipe: dataPayload.recipe, videos: dataPayload.videos } : msg
-                    ));
-
-                } else {
-                    accumulatedText += chunk;
-                    setChatHistory(prev => prev.map(msg => 
-                        msg.id === modelMessageId ? { ...msg, text: accumulatedText.trim() } : msg
-                    ));
-                }
+                accumulatedJson += decoder.decode(value, { stream: true });
             }
-            
-            setChatHistory(prev => {
-                const newHistory = [...prev];
-                const finalMsgIndex = newHistory.findIndex(msg => msg.id === modelMessageId);
-                if (finalMsgIndex !== -1) {
-                    finalMessageState = newHistory[finalMsgIndex];
-                }
-                return newHistory;
-            });
-            
+
+            const parsedData = sanitizeAndParseJson(accumulatedJson);
+
+            if (parsedData.error) {
+                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.error, error: "Parsing Error" };
+            } else if (parsedData.conversation) {
+                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
+            } else {
+                finalMessageState = {
+                    id: modelMessageId,
+                    role: 'model',
+                    text: parsedData.responseText,
+                    recipe: parsedData
+                };
+            }
+
+            setChatHistory(prev => prev.map(msg =>
+                msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
+            ));
+
+
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
-                    await fetch('/api/save-chat', {
+                    const saveResponse = await fetch('/api/save-chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ userMessage, modelMessage: finalMessageState })
                     });
+
+                    if (saveResponse.ok) {
+                        const saveData = await saveResponse.json();
+                        setChatHistory(prev => prev.map(msg =>
+                            msg.id === modelMessageId ? { ...msg, id: saveData.newId } : msg
+                        ));
+                    }
                 }
             }
 
         } catch (error) {
             console.error("Error during API stream:", error);
             const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-            const errorResponseMessage: ChatMessageType = { 
-                id: modelMessageId, 
-                role: 'model', 
-                text: `ขออภัยค่ะ เกิดข้อผิดพลาด: ${errorMessage}`,
-                error: 'API stream failed' 
+            // --- START: โค้ดที่แก้ไข ---
+            // ปรับปรุงการแสดงข้อความ Error ให้เข้าใจง่ายและชัดเจนขึ้น
+            const errorResponseMessage: ChatMessageType = {
+                id: modelMessageId,
+                role: 'model',
+                text: `ขออภัยค่ะ เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ`,
+                error: `API stream failed: ${errorMessage}`
             };
+            // --- END: โค้ดที่แก้ไข ---
             setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? errorResponseMessage : msg));
         } finally {
             setIsLoading(false);
-            setChatHistory(prev => prev.map(msg => 
+            setChatHistory(prev => prev.map(msg =>
                 msg.id === modelMessageId ? { ...msg, isLoading: false } : msg
             ));
         }
-    }, [isSignedIn, getToken, t, chatHistory]);
+    }, [isSignedIn, getToken, chatHistory]);
+
 
     return (
         <>
@@ -174,21 +239,26 @@ const ChatInterface: React.FC = () => {
                                 {t('clear_history')}
                               </button>
                             )}
-                            
-                            {/* ---- START: โค้ดที่ย้อนกลับ ---- */}
-                            <SignedIn> <UserButton afterSignOutUrl="/" /> </SignedIn>
-                            <SignedOut>
-                              <Link 
-                                to="/sign-in" 
-                                className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
-                                title={t('sign_in_button')}
-                              >
-                                <LogIn className="w-4 h-4" />
-                                <span className="hidden md:inline">{t('sign_in_button')}</span>
-                              </Link>
-                            </SignedOut>
-                            {/* ---- END: โค้ดที่ย้อนกลับ ---- */}
 
+                            <div className={`auth-button-wrapper ${isLoaded ? 'loaded' : ''}`}>
+                                <SignedIn>
+                                    <div style={{ opacity: isLoaded && isSignedIn ? 1 : 0 }}>
+                                        <UserButton afterSignOutUrl="/" />
+                                    </div>
+                                </SignedIn>
+                                <SignedOut>
+                                    <div style={{ opacity: isLoaded && !isSignedIn ? 1 : 0 }}>
+                                      <Link
+                                        to="/sign-in"
+                                        className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
+                                        title={t('sign_in_button')}
+                                      >
+                                        <LogIn className="w-4 h-4" />
+                                        <span className="hidden md:inline">{t('sign_in_button')}</span>
+                                      </Link>
+                                    </div>
+                                </SignedOut>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -212,12 +282,12 @@ const ChatInterface: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-6">
-                        {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} /> ))}
+                        {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} onFetchVideos={handleFetchVideos} /> ))}
                         <div ref={chatEndRef} />
                     </div>
                 </div>
             </main>
-            
+
              <footer className="fixed bottom-0 left-0 right-0">
                 <div className="bg-white/40 backdrop-blur-[24px] border-t border-black/10">
                     <div className="max-w-3xl mx-auto">
@@ -262,13 +332,13 @@ const App: React.FC = () => {
             <Suspense fallback={fallbackUI}>
                 <Routes>
                     <Route path="/" element={<ChatInterface />} />
-                    <Route 
-                        path="/sign-in/*" 
-                        element={<div className="flex justify-center items-center h-screen"><SignInPage routing="path" path="/sign-in" afterSignInUrl="/" /></div>} 
+                    <Route
+                        path="/sign-in/*"
+                        element={<div className="flex justify-center items-center h-screen"><SignInPage routing="path" path="/sign-in" afterSignInUrl="/" /></div>}
                     />
-                    <Route 
-                        path="/sign-up/*" 
-                        element={<div className="flex justify-center items-center h-screen"><SignUpPage routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} 
+                    <Route
+                        path="/sign-up/*"
+                        element={<div className="flex justify-center items-center h-screen"><SignUpPage routing="path" path="/sign-up" afterSignUpUrl="/" /></div>}
                     />
                 </Routes>
             </Suspense>
