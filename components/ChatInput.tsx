@@ -1,109 +1,128 @@
-import React, { useState, useRef } from 'react';
-// แก้ไข: เปลี่ยนจาก PaperAirplaneTilt เป็น Send
-import { Send, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { SendIcon, PaperclipIcon, XIcon } from './icons'; // ใช้ icons เดิมจากโปรเจกต์ของคุณ
 
 interface ChatInputProps {
-    onSendMessage: (message: string, imageBase64: string | null) => void;
-    isLoading: boolean;
-    t: (key: string, options?: any) => string;
+  onSendMessage: (text: string, imageBase64: string | null) => void;
+  isLoading: boolean;
+  t: (key: string) => string;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, t }) => {
-    const [inputText, setInputText] = useState('');
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState('');
+  const [image, setImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setInputText(event.target.value);
-        // Auto-resize textarea
-        event.target.style.height = 'auto';
-        event.target.style.height = `${event.target.scrollHeight}px`;
-    };
+  // --- START: ฟังก์ชันปรับความสูง Textarea อัตโนมัติ ---
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'; // รีเซ็ตความสูง
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${scrollHeight}px`; // ตั้งค่าความสูงใหม่
+    }
+  }, [text]);
+  // --- END: ฟังก์ชันปรับความสูง Textarea อัตโนมัติ ---
 
-    const handleSendMessage = () => {
-        if (!isLoading && (inputText.trim() || imagePreview)) {
-            onSendMessage(inputText.trim(), imagePreview);
-            setInputText('');
-            setImageFile(null);
-            setImagePreview(null);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
+  const handleSend = () => {
+    if ((!text.trim() && !image) || isLoading) return;
+    onSendMessage(text, image);
+    setText('');
+    setImage(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            handleSendMessage();
-        }
-    };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+  const removeImage = () => {
+    setImage(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+  
+  const isSendDisabled = isLoading || (!text.trim() && !image);
 
-    const handleRemoveImage = () => {
-        setImageFile(null);
-        setImagePreview(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    };
+  return (
+    // --- START: โค้ดที่ออกแบบใหม่สำหรับ "กล่องแก้ว" ---
+    <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transition-all duration-300 focus-within:border-white/40">
+      <div className="p-3 flex flex-col">
+        
+        {/* ส่วนแสดงรูปภาพที่เลือก */}
+        {image && (
+          <div className="relative mb-3 w-20">
+            <img src={image} alt="Preview" className="h-20 w-20 rounded-lg object-cover border-2 border-white/10" loading="lazy" />
+            <button 
+                onClick={removeImage} 
+                className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white transition-transform hover:scale-110"
+                aria-label="Remove image"
+            >
+                <XIcon className="w-4 h-4"/>
+            </button>
+          </div>
+        )}
 
-    return (
-        <div className="glass-effect-input relative flex items-start space-x-2 rounded-2xl border border-white/20 p-2 transition-all duration-300 focus-within:border-white/40 focus-within:shadow-2xl">
-            {imagePreview && (
-                <div className="relative flex-shrink-0">
-                    <img src={imagePreview} alt="Preview" className="h-10 w-10 rounded-lg object-cover" />
-                    <button onClick={handleRemoveImage} className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-white transition-transform hover:scale-110">
-                        &times;
-                    </button>
-                </div>
+        {/* ส่วน Textarea และปุ่ม */}
+        <div className="flex items-end space-x-3">
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="flex-shrink-0 p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+            aria-label="Attach file"
+            disabled={isLoading}
+          >
+            <PaperclipIcon className="w-6 h-6" />
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept="image/*"
+          />
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('search_placeholder')}
+            className="flex-1 bg-transparent resize-none outline-none text-base text-gray-200 placeholder-gray-400 max-h-36"
+            rows={1}
+            disabled={isLoading}
+          />
+          <button 
+            onClick={handleSend} 
+            disabled={isSendDisabled}
+            className={`flex-shrink-0 w-11 h-11 flex items-center justify-center bg-indigo-600 text-white rounded-full transition-all duration-300 ease-in-out hover:bg-indigo-500 disabled:bg-white/10 disabled:text-gray-400 disabled:scale-100 ${!isSendDisabled ? 'hover:scale-110 shadow-lg shadow-indigo-500/30' : ''} active:scale-100`}
+            aria-label="Send message"
+          >
+            {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+            ) : (
+                <SendIcon className="w-5 h-5" />
             )}
-            <div className="relative flex-grow">
-                <textarea
-                    value={inputText}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                    className="w-full resize-none overflow-y-auto bg-transparent pr-20 text-white placeholder-gray-400 focus:outline-none"
-                    style={{ maxHeight: '120px' }}
-                    placeholder={t('ask_something')}
-                    disabled={isLoading}
-                />
-                 <div className="absolute bottom-0 right-0 top-0 flex items-center space-x-1">
-                    <button onClick={() => fileInputRef.current?.click()} className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/20 hover:text-white" aria-label="Upload image" disabled={isLoading}>
-                         <ImageIcon className="h-5 w-5" />
-                    </button>
-                    <input type="file" id="image-upload" accept="image/*" className="sr-only" onChange={handleImageChange} ref={fileInputRef} />
-                    
-                    <button
-                        onClick={handleSendMessage}
-                        className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${
-                            (!inputText.trim() && !imagePreview) || isLoading
-                                ? 'bg-gray-600/50 text-gray-400'
-                                : 'bg-indigo-600 text-white shadow-md hover:bg-indigo-500'
-                        }`}
-                        disabled={!inputText.trim() && !imagePreview || isLoading}
-                        aria-label={t('send')}
-                    >
-                         {/* แก้ไข: เปลี่ยนจาก PaperAirplaneTilt เป็น Send */}
-                        <Send className="h-5 w-5" />
-                    </button>
-                </div>
-            </div>
+          </button>
         </div>
-    );
+      </div>
+    </div>
+    // --- END: โค้ดที่ออกแบบใหม่ ---
+  );
 };
 
 export default ChatInput;

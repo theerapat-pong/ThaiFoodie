@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 const Star: React.FC<{style: React.CSSProperties}> = React.memo(({ style }) => <div style={style} />);
 
@@ -6,7 +6,7 @@ const Stars: React.FC<{count: number}> = ({count}) => {
     const stars = useMemo(() => {
         return Array.from({ length: count }).map((_, i) => {
             const size = Math.random() * 2.5 + 1;
-            const duration = Math.random() * 1.5 + 1; // 1s to 2.5s for faster twinkle
+            const duration = Math.random() * 1.5 + 1;
             const delay = Math.random() * 2.5;
             const hue = Math.random() * 360;
             const color = `hsla(${hue}, 100%, 80%, 0.9)`;
@@ -33,32 +33,14 @@ const Stars: React.FC<{count: number}> = ({count}) => {
 }
 
 const Background: React.FC = () => {
-    const [mousePosition, setMousePosition] = useState({ x: -1000, y: -1000 });
-
-    useEffect(() => {
-        const handleMouseMove = (event: MouseEvent) => {
-            setMousePosition({ x: event.clientX, y: event.clientY });
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-        };
-    }, []);
-
+    // โค้ดที่ติดตามเมาส์ถูกลบออกไปแล้ว
     return (
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#0d0d0d]">
-            {/* Scattered stars layer */}
+            {/* เหลือแค่เลเยอร์ของดวงดาว */}
             <div className="absolute inset-0">
                 <Stars count={500} />
             </div>
-
-            {/* Interactive spotlight layer */}
-             <div 
-                className="absolute inset-0 transition-all duration-300 ease-out"
-                style={{
-                    background: `radial-gradient(circle 350px at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 255, 255, 0.06), transparent 80%)`,
-                }}
-             />
+            {/* เลเยอร์แสงที่ตามเมาส์ถูกลบออกไปแล้ว */}
         </div>
     );
 };
