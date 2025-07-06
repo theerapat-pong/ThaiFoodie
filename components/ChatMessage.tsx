@@ -1,4 +1,3 @@
-// src/components/ChatMessage.tsx (ฉบับสมบูรณ์ - แก้ไขล่าสุด)
 import React, { useState } from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
@@ -54,15 +53,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
 
             {!message.videos && (
               <div className="mt-4">
-                {/* ---- START: โค้ดที่แก้ไข (ใช้ CSS สร้างเอฟเฟกต์แทน) ---- */}
+                {/* ---- START: โค้ดที่แก้ไข ---- */}
                 <button
                   onClick={handleFetchClick}
                   disabled={isFetchingVideos}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-black/70 rounded-xl shadow-lg hover:bg-black/90 disabled:bg-gray-500 disabled:cursor-wait transition-all duration-200 active:scale-95 border border-white/20"
-                  style={{
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)', // สำหรับ Safari
-                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-black disabled:bg-gray-500 disabled:cursor-wait transition-all duration-200 active:scale-95"
                 >
                 {/* ---- END: โค้ดที่แก้ไข ---- */}
                   {isFetchingVideos ? (
