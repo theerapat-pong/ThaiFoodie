@@ -13,7 +13,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import LanguageSwitcher from './components/LanguageSwitcher';
 import Loader from './components/Loader';
-import Background from './components/Background'; //  <-- เพิ่มการ import
+import Background from './components/Background'; //  <-- ตรวจสอบว่า import ถูกต้อง
 
 const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignIn })));
 const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
@@ -208,9 +208,6 @@ const ChatInterface: React.FC = () => {
         }
     }, [isSignedIn, getToken, i18n.language, chatHistory]);
 
-    // UI elements will need style adjustments for the dark theme.
-    // Example: change text-gray-xxx to text-gray-300 or 400, bg-white to bg-black/10 etc.
-    // This is a partial adjustment to show the concept. You might need to tweak more components.
     return (
         <>
             <header className="fixed top-0 left-0 right-0 bg-black/30 backdrop-blur-xl z-20 border-b border-white/10">
@@ -315,7 +312,7 @@ const App: React.FC = () => {
 
     return (
         <div className="text-gray-200 min-h-screen flex flex-col font-sans relative">
-            <Background /> {/* <-- เพิ่ม Background component ที่นี่ */}
+            <Background />
             <div className="relative z-10 flex flex-col min-h-screen">
                 <Analytics />
                 <SpeedInsights />

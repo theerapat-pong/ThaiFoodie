@@ -5,9 +5,13 @@ const Star: React.FC<{style: React.CSSProperties}> = React.memo(({ style }) => <
 const Stars: React.FC<{count: number}> = ({count}) => {
     const stars = useMemo(() => {
         return Array.from({ length: count }).map((_, i) => {
-            const size = Math.random() * 2 + 1;
-            const duration = Math.random() * 3 + 4;
-            const delay = Math.random() * 7;
+            const size = Math.random() * 2.5 + 1;
+            const duration = Math.random() * 1.5 + 1; // 1s to 2.5s for faster twinkle
+            const delay = Math.random() * 2.5;
+            const hue = Math.random() * 360;
+            const color = `hsla(${hue}, 100%, 80%, 0.9)`;
+            const glowColor = `hsla(${hue}, 100%, 80%, 0.5)`;
+
             return {
                 key: i,
                 style: {
@@ -16,8 +20,9 @@ const Stars: React.FC<{count: number}> = ({count}) => {
                     left: `${Math.random() * 100}%`,
                     width: `${size}px`,
                     height: `${size}px`,
-                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                    backgroundColor: color,
                     borderRadius: '50%',
+                    boxShadow: `0 0 ${size * 1.5}px ${glowColor}, 0 0 ${size * 3}px ${glowColor}`,
                     animation: `twinkle ${duration}s infinite ease-in-out ${delay}s`,
                 }
             };
@@ -51,7 +56,7 @@ const Background: React.FC = () => {
              <div 
                 className="absolute inset-0 transition-all duration-300 ease-out"
                 style={{
-                    background: `radial-gradient(circle 250px at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 255, 255, 0.06), transparent 80%)`,
+                    background: `radial-gradient(circle 350px at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 255, 255, 0.06), transparent 80%)`,
                 }}
              />
         </div>
