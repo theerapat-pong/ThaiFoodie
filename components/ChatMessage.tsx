@@ -1,9 +1,14 @@
+// src/components/ChatMessage.tsx (ฉบับแก้ไข)
 import React, { useState } from 'react';
 import { ChatMessage as ChatMessageType } from '../types';
 import RecipeCard from './RecipeCard';
 import { UserIcon, BotIcon, VideoIcon } from './icons';
 import Loader from './Loader';
 import VideoCard from './VideoCard';
+// ---- START: โค้ดที่เพิ่ม ----
+import LiquidGlass from 'liquid-glass-react'; // 1. Import LiquidGlass เข้ามา
+// ---- END: โค้ดที่เพิ่ม ----
+
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -54,24 +59,39 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
             {!message.videos && (
               <div className="mt-4">
                 {/* ---- START: โค้ดที่แก้ไข ---- */}
-                <button
+                {/* 2. เปลี่ยนจาก <button> มาใช้ <LiquidGlass> แทน */}
+                <LiquidGlass
+                  as="button" // ทำให้ LiquidGlass ทำตัวเป็นปุ่ม
+                  cornerRadius={12} // ปรับขอบให้มน
+                  padding="10px 16px"
+                  elasticity={0.25} // ความยืดหยุ่น
+                  displacementScale={25} // ความบิดเบี้ยว
+                  blurAmount={0.1} // ความเบลอ
                   onClick={handleFetchClick}
+                  // @ts-ignore
                   disabled={isFetchingVideos}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-black disabled:bg-gray-500 disabled:cursor-wait transition-all duration-200 active:scale-95"
+                  className={`w-full text-white font-semibold text-sm ${isFetchingVideos ? 'bg-gray-500/80' : 'bg-gray-800/80 hover:bg-black/90'}`}
+                  style={{
+                    transition: 'background-color 0.2s',
+                    cursor: isFetchingVideos ? 'wait' : 'pointer',
+                    backdropFilter: 'blur(10px)', // เพิ่มความเบลอพื้นฐาน
+                  }}
                 >
+                  <div className="flex items-center justify-center gap-2">
+                    {isFetchingVideos ? (
+                      <>
+                        <Loader />
+                        <span>{t('fetching_videos')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <VideoIcon className="w-5 h-5" />
+                        <span>{t('show_related_videos')}</span>
+                      </>
+                    )}
+                  </div>
+                </LiquidGlass>
                 {/* ---- END: โค้ดที่แก้ไข ---- */}
-                  {isFetchingVideos ? (
-                    <>
-                      <Loader />
-                      <span>{t('fetching_videos')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <VideoIcon className="w-5 h-5" />
-                      <span>{t('show_related_videos')}</span>
-                    </>
-                  )}
-                </button>
               </div>
             )}
           </div>
