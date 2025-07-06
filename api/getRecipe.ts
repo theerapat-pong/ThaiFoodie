@@ -1,4 +1,4 @@
-import { GoogleGenAI, Content, GenerateContentRequest, SystemInstruction } from "@google/genai";
+import { GoogleGenAI, Content, GenerateContentRequest } from "@google/genai";
 
 export const config = {
   runtime: 'edge',
@@ -6,47 +6,48 @@ export const config = {
 
 const API_KEY = process.env.API_KEY;
 
-// --- START: โค้ดที่แก้ไข ---
-// ปรับปรุง System Instruction ให้กระชับและชัดเจนขึ้น
-const systemInstruction: SystemInstruction = {
-  role: "model",
-  parts: [{
-    text: `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine.
+const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine.
 
-**Core Directives:**
-1.  **Language First:** Always detect the user's language (Thai or English) from their latest prompt. Your entire response MUST be in that single language.
-2.  **Strict JSON Output:** You MUST ONLY respond with a single, raw, perfectly-formed JSON object. No markdown, no extra text. Keys must be in English.
+**ABSOLUTE RULES:**
 
-**Response Schemas (Choose ONE):**
+1.  **DETECT LANGUAGE:** Your first and most critical task is to determine the user's language (Thai or English) from their most recent prompt.
+2.  **STRICT LANGUAGE ADHERENCE:** ALL parts of your response, without exception, MUST be in the single language you detected in step 1. Do not mix languages.
+3.  **JSON SCHEMA:** You MUST respond with ONLY ONE of the following JSON schemas. The entire response must be a single, raw, perfectly-formed JSON object. There must be no trailing commas.
 
-* **A) Recipe Found:** If the user asks for a Thai recipe, use this schema. All string values must be in the detected user language.
-    \`\`\`json
-    {
-      "responseText": "A friendly intro, e.g., 'Here is the recipe for [Dish Name].' or 'นี่คือสูตรสำหรับ [ชื่ออาหาร] ค่ะ'",
-      "dishName": "Dish name",
-      "ingredients": [ { "name": "Ingredient name", "amount": "Quantity" } ],
-      "instructions": [ "Step 1", "Step 2" ],
-      "calories": "Estimated total calories (e.g., '550 kcal')"
-    }
-    \`\`\`
+    * **SCHEMA A: For Thai Recipe Requests**
+        -   All JSON **keys** MUST remain in English.
+        -   All JSON **values** (like dishName, ingredients, instructions, etc.) MUST be strictly in the user's detected language.
+        -   **You MUST include a "responseText" key.** This key's value should be a friendly introductory sentence like "Here is the recipe for [dishName]" or "นี่คือสูตรสำหรับ [dishName] ค่ะ", using the dishName you've generated in the correct language.
 
-* **B) No Recipe / Conversation:** For greetings, non-recipe questions, or if you can't find a recipe.
-    \`\`\`json
-    {
-      "conversation": "Your conversational response in the user's language."
-    }
-    \`\`\`
+        \`\`\`json
+        {
+          "responseText": "Your introductory sentence here.",
+          "dishName": "The name of the dish, strictly in the user's language.",
+          "ingredients": [
+            { "name": "Ingredient name, strictly in the user's language.", "amount": "Quantity, strictly in the user's language." }
+          ],
+          "instructions": [
+            "Step 1, strictly in the user's language.",
+            "Step 2, strictly in the user's language."
+          ],
+          "calories": "Estimated total calorie count"
+        }
+        \`\`\`
 
-* **C) Error:** If the request is unclear or invalid.
-    \`\`\`json
-    {
-       "error": "A polite error message in the user's language."
-    }
-    \`\`\`
-`
-  }]
-};
-// --- END: โค้ดที่แก้ไข ---
+    * **SCHEMA B: For Other Conversations**
+        \`\`\`json
+        {
+          "conversation": "Your friendly response, strictly in the user's detected language."
+        }
+        \`\`\`
+
+    * **SCHEMA C: For Errors**
+        \`\`\`json
+        {
+          "error": "A polite error message, strictly in the user's detected language."
+        }
+        \`\`\`
+`;
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
   return { inlineData: { data: base64, mimeType } };
@@ -59,7 +60,7 @@ export default async function handler(request: Request) {
     }
 
     const { prompt, imageBase64, history } = await request.json();
-    const genAI = new GoogleGenAI(API_KEY);
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const contents: Content[] = (history || [])
       .filter((msg: any) => (msg.role === 'user' || msg.role === 'model') && !msg.isLoading && msg.text)
@@ -74,22 +75,23 @@ export default async function handler(request: Request) {
     } else {
       contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
+    
+    const req: GenerateContentRequest = {
+        model: "gemini-2.5-flash",
+        contents: contents,
+        config: {
+          systemInstruction: systemInstruction,
+          responseMimeType: "application/json",
+        },
+    };
 
-    const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction,
-        generationConfig: {
-            responseMimeType: "application/json",
-        }
-    });
-
-    const result = await model.generateContentStream(contents);
+    const streamingResponse = await ai.models.generateContentStream(req);
 
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
+        for await (const chunk of streamingResponse) {
+          const text = chunk.text;
           if (text) {
             controller.enqueue(encoder.encode(text));
           }
@@ -99,7 +101,7 @@ export default async function handler(request: Request) {
     });
 
     return new Response(stream, {
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
 
   } catch (e) {

@@ -67,7 +67,7 @@ const ChatInterface: React.FC = () => {
             setChatHistory([]);
         }
     }, [isLoaded, isSignedIn, getToken]);
-
+    
     const handleClearHistory = async () => {
         setChatHistory([]);
         if (isSignedIn) {
@@ -114,19 +114,7 @@ const ChatInterface: React.FC = () => {
                     }
                 }
             } else {
-                 // --- START: โค้ดที่แก้ไข ---
-                // จัดการกับข้อผิดพลาดที่ตอบกลับมาจาก API
-                const errorData = await response.json();
-                console.error("Failed to fetch videos:", errorData.error || "Unknown error");
-                // อัปเดต UI เพื่อแจ้งผู้ใช้ (อาจจะแสดงเป็น toast notification หรือข้อความในแชท)
-                setChatHistory(prev =>
-                    prev.map(msg =>
-                        msg.id === messageId
-                            ? { ...msg, error: `Video fetch error: ${errorData.error || "Please try again later."}` }
-                            : msg
-                    )
-                );
-                // --- END: โค้ดที่แก้ไข ---
+                console.error("Failed to fetch videos");
             }
         } catch (error) {
             console.error("Error fetching videos:", error);
@@ -137,7 +125,7 @@ const ChatInterface: React.FC = () => {
         if (!inputText.trim() && !imageBase64) return;
 
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
-
+        
         const modelMessageId = 'model-' + Date.now();
         const initialModelMessage: ChatMessageType = { id: modelMessageId, role: 'model', text: '', isLoading: true };
 
@@ -147,7 +135,7 @@ const ChatInterface: React.FC = () => {
         let finalMessageState: ChatMessageType | null = null;
 
         try {
-            const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
+            const response = await getRecipeForDish(inputText, imageBase64, chatHistory, i18n.language);
 
             if (!response.body) {
                 throw new Error("The response body is empty.");
@@ -161,24 +149,27 @@ const ChatInterface: React.FC = () => {
                 const { done, value } = await reader.read();
                 if (done) break;
                 accumulatedJson += decoder.decode(value, { stream: true });
+                // ---- START: โค้ดที่แก้ไข ----
+                // เราจะไม่แสดงผลข้อมูลระหว่างทางอีกต่อไป
+                // ---- END: โค้ดที่แก้ไข ----
             }
 
             const parsedData = sanitizeAndParseJson(accumulatedJson);
-
+            
             if (parsedData.error) {
                 finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.error, error: "Parsing Error" };
             } else if (parsedData.conversation) {
                 finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
             } else {
-                finalMessageState = {
-                    id: modelMessageId,
-                    role: 'model',
+                finalMessageState = { 
+                    id: modelMessageId, 
+                    role: 'model', 
                     text: parsedData.responseText,
                     recipe: parsedData
                 };
             }
-
-            setChatHistory(prev => prev.map(msg =>
+            
+            setChatHistory(prev => prev.map(msg => 
                 msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
             ));
 
@@ -191,10 +182,10 @@ const ChatInterface: React.FC = () => {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ userMessage, modelMessage: finalMessageState })
                     });
-
+                    
                     if (saveResponse.ok) {
                         const saveData = await saveResponse.json();
-                        setChatHistory(prev => prev.map(msg =>
+                        setChatHistory(prev => prev.map(msg => 
                             msg.id === modelMessageId ? { ...msg, id: saveData.newId } : msg
                         ));
                     }
@@ -204,24 +195,20 @@ const ChatInterface: React.FC = () => {
         } catch (error) {
             console.error("Error during API stream:", error);
             const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-            // --- START: โค้ดที่แก้ไข ---
-            // ปรับปรุงการแสดงข้อความ Error ให้เข้าใจง่ายและชัดเจนขึ้น
-            const errorResponseMessage: ChatMessageType = {
-                id: modelMessageId,
-                role: 'model',
-                text: `ขออภัยค่ะ เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ`,
-                error: `API stream failed: ${errorMessage}`
+            const errorResponseMessage: ChatMessageType = { 
+                id: modelMessageId, 
+                role: 'model', 
+                text: `ขออภัยค่ะ เกิดข้อผิดพลาด: ${errorMessage}`,
+                error: 'API stream failed' 
             };
-            // --- END: โค้ดที่แก้ไข ---
             setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? errorResponseMessage : msg));
         } finally {
             setIsLoading(false);
-            setChatHistory(prev => prev.map(msg =>
+            setChatHistory(prev => prev.map(msg => 
                 msg.id === modelMessageId ? { ...msg, isLoading: false } : msg
             ));
         }
-    }, [isSignedIn, getToken, chatHistory]);
-
+    }, [isSignedIn, getToken, i18n.language, chatHistory]);
 
     return (
         <>
@@ -239,7 +226,7 @@ const ChatInterface: React.FC = () => {
                                 {t('clear_history')}
                               </button>
                             )}
-
+                            
                             <div className={`auth-button-wrapper ${isLoaded ? 'loaded' : ''}`}>
                                 <SignedIn>
                                     <div style={{ opacity: isLoaded && isSignedIn ? 1 : 0 }}>
@@ -248,8 +235,8 @@ const ChatInterface: React.FC = () => {
                                 </SignedIn>
                                 <SignedOut>
                                     <div style={{ opacity: isLoaded && !isSignedIn ? 1 : 0 }}>
-                                      <Link
-                                        to="/sign-in"
+                                      <Link 
+                                        to="/sign-in" 
                                         className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
                                         title={t('sign_in_button')}
                                       >
@@ -287,7 +274,7 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </div>
             </main>
-
+            
              <footer className="fixed bottom-0 left-0 right-0">
                 <div className="bg-white/40 backdrop-blur-[24px] border-t border-black/10">
                     <div className="max-w-3xl mx-auto">
@@ -332,13 +319,13 @@ const App: React.FC = () => {
             <Suspense fallback={fallbackUI}>
                 <Routes>
                     <Route path="/" element={<ChatInterface />} />
-                    <Route
-                        path="/sign-in/*"
-                        element={<div className="flex justify-center items-center h-screen"><SignInPage routing="path" path="/sign-in" afterSignInUrl="/" /></div>}
+                    <Route 
+                        path="/sign-in/*" 
+                        element={<div className="flex justify-center items-center h-screen"><SignInPage routing="path" path="/sign-in" afterSignInUrl="/" /></div>} 
                     />
-                    <Route
-                        path="/sign-up/*"
-                        element={<div className="flex justify-center items-center h-screen"><SignUpPage routing="path" path="/sign-up" afterSignUpUrl="/" /></div>}
+                    <Route 
+                        path="/sign-up/*" 
+                        element={<div className="flex justify-center items-center h-screen"><SignUpPage routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} 
                     />
                 </Routes>
             </Suspense>
