@@ -50,7 +50,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, t }) =>
   };
 
   return (
-    <div className="bg-white/80 border border-gray-300/80 rounded-2xl p-2 flex items-end shadow-lg backdrop-blur-md">
+    <div className="bg-white/60 border border-gray-300/50 rounded-2xl p-2 flex items-end shadow-xl shadow-gray-400/30 backdrop-blur-lg">
       {image && (
         <div className="relative mr-2 mb-1 self-center">
             {/* ---- START: โค้ดที่แก้ไข ---- */}
