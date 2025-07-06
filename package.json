@@ -14,6 +14,8 @@
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/localizations": "^3.17.3",
     "@google/genai": "^0.12.0",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@vercel/analytics": "^1.2.2",
     "@vercel/postgres": "^0.10.0",
     "@vercel/speed-insights": "^1.0.10",
@@ -24,7 +26,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-i18next": "^14.1.2",
-    "react-router-dom": "^7.6.3"
+    "react-router-dom": "^7.6.3",
+    "three": "^0.178.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
