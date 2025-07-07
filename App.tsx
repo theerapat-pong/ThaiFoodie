@@ -281,9 +281,9 @@ const ChatInterface: React.FC = () => {
                 </header>
                 
                 {/* Main content and footer are now siblings in a flex column */}
-                <main className="flex-1 overflow-y-auto max-h-[calc(100vh - 128px)] pb-16">
+                <main className="flex-1 overflow-y-auto max-h-[calc(100vh_-_128px)] pt-16 pb-16">
                     {/* The scrollable content */}
-                    <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto">
+                    <div className="max-w-3xl w-full mx-auto px-4">
                         {chatHistory.length === 0 && !isLoading ? (
                             <div className="flex flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
