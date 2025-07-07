@@ -135,6 +135,7 @@ const ChatInterface: React.FC = () => {
     
     const handleClearHistory = () => { setChatHistory([]); };
 
+    // --- START: This is the restored function ---
     const handleFetchVideos = async (messageId: string, dishName: string) => {
         try {
             const response = await fetch('/api/getVideos', {
@@ -160,6 +161,7 @@ const ChatInterface: React.FC = () => {
             console.error("Error fetching videos:", error);
         }
     };
+    // --- END: Restored function ---
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
@@ -306,31 +308,17 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                {/* --- START: This is the corrected footer --- */}
-                <footer className="flex-shrink-0">
-                    <div className="bg-transparent pt-2 pb-[env(safe-area-inset-bottom)]">
-                        <div className="max-w-3xl mx-auto px-4">
-                            <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
-                        </div>
-                        <div className="text-center pb-2 pt-2 text-xs text-gray-500">
-                            <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                                <SignedOut>
-                                    {chatHistory.length > 0 && !isLoading && (
-                                        <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
-                                    )}
-                                </SignedOut>
-                                <span>{t('copyright')}</span>
-                                <span className="hidden md:inline">|</span>
-                                <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a>
-                                <span>|</span>
-                                <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a>
-                                <span className="hidden md:inline">|</span>
-                                <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
-                            </div>
-                        </div>
-                    </div>
+                 <footer className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
+                    <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
+                            <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                                    <SignedOut>
+                                        {chatHistory.length > 0 && !isLoading && (
+                                            <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
+                                        )}
+                                    </SignedOut>
+                                    <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
+                            </div></div></div></div>
                 </footer>
-                {/* --- END: Corrected footer --- */}
             </div>
         </div>
     );
