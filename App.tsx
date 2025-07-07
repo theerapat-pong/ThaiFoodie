@@ -306,7 +306,7 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                <footer className="flex-shrink-0">
+                <footer className="fixed inset-x-0 bottom-0 flex-shrink-0">
                     <div className="bg-transparent pt-2 pb-[env(safe-area-inset-bottom)]">
                         <div className="max-w-3xl mx-auto px-4">
                             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
