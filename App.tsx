@@ -56,28 +56,7 @@ const ChatInterface: React.FC = () => {
     };
     useEffect(scrollToBottom, [chatHistory]);
 
-    const fetchConversations = useCallback(async (token: string) => {
-        try {
-            const response = await fetch('/api/get-conversations', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const data: Conversation[] = await response.json();
-                setConversations(data);
-                if (isInitialLoad && data.length > 0) {
-                    handleSelectConversation(data[0].id, token);
-                    setIsInitialLoad(false);
-                }
-            } else {
-                 setConversations([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch conversations:", error);
-            setConversations([]);
-        }
-    }, [isInitialLoad]);
-
-    const fetchMessagesForConversation = async (convoId: number, token: string) => {
+    const fetchMessagesForConversation = useCallback(async (convoId: number, token: string) => {
         setIsLoading(true);
         setChatHistory([]);
         try {
@@ -96,7 +75,34 @@ const ChatInterface: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
+
+    const handleSelectConversation = useCallback((id: number, token: string) => {
+        setActiveConversationId(id);
+        fetchMessagesForConversation(id, token);
+        if (window.innerWidth < 768) {
+            setIsSidebarOpen(false);
+        }
+    }, [fetchMessagesForConversation]);
+
+    const fetchConversations = useCallback(async (token: string) => {
+        try {
+            const response = await fetch('/api/get-conversations', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (response.ok) {
+                const data: Conversation[] = await response.json();
+                setConversations(data);
+                if (isInitialLoad && data.length > 0) {
+                    handleSelectConversation(data[0].id, token);
+                    setIsInitialLoad(false);
+                }
+            } else {
+                 setConversations([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch conversations:", error);
+            setConversations([]);
+        }
+    }, [isInitialLoad, handleSelectConversation]);
     
     useEffect(() => {
         if (isLoaded && isSignedIn) {
@@ -104,35 +110,46 @@ const ChatInterface: React.FC = () => {
                 if (token) fetchConversations(token);
             });
         } else if (isLoaded && !isSignedIn) {
-            setConversations([]);
-            setChatHistory([]);
-            setActiveConversationId(null);
-            setIsInitialLoad(true);
+            setConversations([]); setChatHistory([]); setActiveConversationId(null); setIsInitialLoad(true);
         }
     }, [isLoaded, isSignedIn, getToken, fetchConversations]);
-
-    const handleSelectConversation = (id: number, token?: string | null) => {
-        setActiveConversationId(id);
-        const fetchToken = token ? Promise.resolve(token) : getToken();
-        fetchToken.then(tok => {
-            if (tok) fetchMessagesForConversation(id, tok);
-        });
-        if (window.innerWidth < 768) { // Close sidebar on mobile after selection
-            setIsSidebarOpen(false);
-        }
-    };
 
     const handleNewChat = () => {
         setActiveConversationId(null);
         setChatHistory([]);
         setIsLoading(false);
-        if (window.innerWidth < 768) {
-            setIsSidebarOpen(false);
+        if (window.innerWidth < 768) setIsSidebarOpen(false);
+    };
+
+    const handleDeleteConversation = async (id: number) => {
+        if (!window.confirm("Are you sure you want to delete this chat?")) return;
+
+        const token = await getToken();
+        if (!token) return;
+
+        try {
+            const response = await fetch('/api/delete-conversation', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ conversationId: id })
+            });
+
+            if (response.ok) {
+                // Refresh conversation list and go to new chat state
+                await fetchConversations(token);
+                handleNewChat();
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to delete chat: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error("Error deleting conversation:", error);
+            alert("An error occurred while deleting the chat.");
         }
     };
     
     const handleFetchVideos = async (messageId: string, dishName: string) => {
-        // This function remains the same
+        // ... (This function remains unchanged)
     };
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
@@ -141,17 +158,12 @@ const ChatInterface: React.FC = () => {
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
         const modelMessageId = 'model-' + Date.now();
         const initialModelMessage: ChatMessageType = { id: modelMessageId, role: 'model', text: '', isLoading: true };
-
         setChatHistory(prev => [...prev, userMessage, initialModelMessage]);
         setIsLoading(true);
-
         let finalMessageState: ChatMessageType | null = null;
-
         try {
             const response = await getRecipeForDish(inputText, imageBase64, chatHistory, i18n.language);
-            
             if (!response.body) throw new Error("The response body is empty.");
-
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let accumulatedJson = "";
@@ -161,15 +173,9 @@ const ChatInterface: React.FC = () => {
                 accumulatedJson += decoder.decode(value, { stream: true });
             }
             const parsedData = sanitizeAndParseJson(accumulatedJson);
-            
-            if (parsedData.error) {
-                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.error, error: "Parsing Error" };
-            } else if (parsedData.conversation) {
-                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
-            } else {
-                finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.responseText, recipe: parsedData };
-            }
-            
+            if (parsedData.error) finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.error, error: "Parsing Error" };
+            else if (parsedData.conversation) finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
+            else finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.responseText, recipe: parsedData };
             setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg));
 
             if (isSignedIn) {
@@ -180,11 +186,9 @@ const ChatInterface: React.FC = () => {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ userMessage, modelMessage: finalMessageState, conversationId: activeConversationId })
                     });
-                    
                     if (saveResponse.ok) {
                         const saveData = await saveResponse.json();
                         setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? { ...msg, id: saveData.newModelMessageId } : msg));
-                        
                         if (activeConversationId === null) {
                            setActiveConversationId(saveData.conversationId);
                            await fetchConversations(token);
@@ -192,7 +196,6 @@ const ChatInterface: React.FC = () => {
                     }
                 }
             }
-
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
             const errorResponseMessage: ChatMessageType = { id: modelMessageId, role: 'model', text: `ขออภัยค่ะ เกิดข้อผิดพลาด: ${errorMessage}`, error: 'API stream failed' };
@@ -205,19 +208,15 @@ const ChatInterface: React.FC = () => {
     return (
         <div className="flex h-screen w-screen bg-white font-sans">
             <SignedIn>
-                <div className={`
-                    transition-all duration-300 ease-in-out
-                    ${isSidebarOpen ? 'w-64' : 'w-0'}
-                    hidden md:block flex-shrink-0
-                `}>
+                <div className={`transition-all duration-300 ease-in-out flex-shrink-0 h-full overflow-y-auto ${isSidebarOpen ? 'w-64' : 'w-0'} hidden md:block`}>
                     <Sidebar
                         conversations={conversations}
                         activeConversationId={activeConversationId}
-                        onSelectConversation={(id) => handleSelectConversation(id, null)}
+                        onSelectConversation={(id) => { getToken().then(token => token && handleSelectConversation(id, token))}}
                         onNewChat={handleNewChat}
+                        onDeleteConversation={handleDeleteConversation}
                     />
                 </div>
-                {/* Mobile Sidebar (Overlay) */}
                 {isSidebarOpen && (
                     <div className="md:hidden absolute inset-0 z-30">
                         <div className="absolute inset-0 bg-black/30" onClick={() => setIsSidebarOpen(false)}></div>
@@ -225,8 +224,9 @@ const ChatInterface: React.FC = () => {
                             <Sidebar
                                 conversations={conversations}
                                 activeConversationId={activeConversationId}
-                                onSelectConversation={(id) => handleSelectConversation(id, null)}
+                                onSelectConversation={(id) => { getToken().then(token => token && handleSelectConversation(id, token))}}
                                 onNewChat={handleNewChat}
+                                onDeleteConversation={handleDeleteConversation}
                             />
                         </div>
                     </div>
@@ -235,7 +235,7 @@ const ChatInterface: React.FC = () => {
             
             <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
                 <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
-                    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center">
                                 <SignedIn>
@@ -244,23 +244,13 @@ const ChatInterface: React.FC = () => {
                                     </button>
                                 </SignedIn>
                                 <SignedOut>
-                                     <Link to="/" className="flex items-center space-x-3">
-                                        <LogoIcon className="w-8 h-8" />
-                                        <h1 className="hidden sm:block text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1>
-                                    </Link>
+                                     <Link to="/" className="flex items-center space-x-3"><LogoIcon className="w-8 h-8" /><h1 className="hidden sm:block text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1></Link>
                                 </SignedOut>
                             </div>
                             <div className="flex items-center gap-4">
                                 <LanguageSwitcher />
                                 <SignedOut>
-                                  <Link 
-                                    to="/sign-in" 
-                                    className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg"
-                                    title={t('sign_in_button')}
-                                  >
-                                    <LogIn className="w-4 h-4" />
-                                    <span className="hidden md:inline">{t('sign_in_button')}</span>
-                                  </Link>
+                                  <Link to="/sign-in" className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg" title={t('sign_in_button')}><LogIn className="w-4 h-4" /><span className="hidden md:inline">{t('sign_in_button')}</span></Link>
                                 </SignedOut>
                             </div>
                         </div>
@@ -269,46 +259,31 @@ const ChatInterface: React.FC = () => {
 
                 <main className="flex-1 overflow-y-auto">
                     <div className="max-w-3xl w-full mx-auto px-4">
-                        {chatHistory.length === 0 && !isLoading && (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp min-h-[calc(100vh-16rem)]">
+                        {chatHistory.length === 0 && !isLoading ? (
+                            <div className="flex flex-col items-center justify-center text-center text-gray-600 animate-fadeInUp min-h-[calc(100vh-16rem)]">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
-                                <p className="text-2xl font-semibold">
-                                    {isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}
-                                </p>
+                                <p className="text-2xl font-semibold">{isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}</p>
                                 <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
                                 <p className="mt-4 text-sm max-w-sm text-gray-500">{t('subheadline')}</p>
                                 <div className="mt-6 flex flex-wrap justify-center gap-2">
-                                    {examplePrompts.map((prompt) => (
-                                        <button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>
-                                    ))}
+                                    {examplePrompts.map((prompt) => (<button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>))}
                                 </div>
                             </div>
+                        ) : (
+                            <div className="space-y-6 pt-6 pb-8">
+                                {isLoading && chatHistory.length === 0 && <div className='flex justify-center items-center h-full'><Loader /></div>}
+                                {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} onFetchVideos={handleFetchVideos} /> ))}
+                                <div ref={chatEndRef} />
+                            </div>
                         )}
-                        <div className="space-y-6 pt-6 pb-8">
-                            {isLoading && chatHistory.length === 0 && <div className='flex justify-center items-center h-full'><Loader /></div>}
-                            {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} onFetchVideos={handleFetchVideos} /> ))}
-                            <div ref={chatEndRef} />
-                        </div>
                     </div>
                 </main>
                 
                  <footer className="flex-shrink-0">
-                    <div className="bg-transparent">
-                        <div className="max-w-3xl mx-auto">
-                            <div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
-                            <div className="text-center pb-2 pt-1 text-xs text-gray-500">
-                                 <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                                    <span>{t('copyright')}</span>
-                                    <span className="hidden md:inline">|</span>
-                                    <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a>
-                                    <span>|</span>
-                                    <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a>
-                                     <span className="hidden md:inline">|</span>
-                                    <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
+                            <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                                    <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
+                            </div></div></div></div>
                 </footer>
             </div>
         </div>
@@ -316,7 +291,19 @@ const ChatInterface: React.FC = () => {
 };
 
 const App: React.FC = () => {
-    // ... App component remains the same
+    const fallbackUI = ( <div className="flex justify-center items-center h-screen"><Loader /></div> );
+    return (
+        <div className="bg-white text-black min-h-screen flex flex-col">
+            <Analytics /><SpeedInsights />
+            <Suspense fallback={fallbackUI}>
+                <Routes>
+                    <Route path="/" element={<ChatInterface />} />
+                    <Route path="/sign-in/*" element={<div className="flex justify-center items-center h-screen"><SignInPage routing="path" path="/sign-in" afterSignInUrl="/" /></div>} />
+                    <Route path="/sign-up/*" element={<div className="flex justify-center items-center h-screen"><SignUpPage routing="path" path="/sign-up" afterSignUpUrl="/" /></div>} />
+                </Routes>
+            </Suspense>
+        </div>
+    );
 };
 
 export default App;
