@@ -250,8 +250,8 @@ const ChatInterface: React.FC = () => {
                 )}
             </SignedIn>
             
-            <div className="flex-1 fixed flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
-                <header className="fixed-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
+            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
+                <header className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-lg z-10 border-b border-black/10">
                     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center">
