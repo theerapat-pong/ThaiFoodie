@@ -63,6 +63,7 @@ const ChatInterface: React.FC = () => {
             if (response.ok) {
                 const data: Conversation[] = await response.json();
                 setConversations(data);
+                // Auto-select the first conversation if none is active
                 if (activeConversationId === null && data.length > 0) {
                     handleSelectConversation(data[0].id, token);
                 }
@@ -73,7 +74,7 @@ const ChatInterface: React.FC = () => {
             console.error("Failed to fetch conversations:", error);
             setConversations([]);
         }
-    }, [activeConversationId]); // Dependency array updated
+    }, [activeConversationId]);
 
     const fetchMessagesForConversation = async (convoId: number, token: string) => {
         setIsLoading(true);
@@ -108,7 +109,7 @@ const ChatInterface: React.FC = () => {
         }
     }, [isLoaded, isSignedIn, getToken, fetchConversations]);
 
-    const handleSelectConversation = (id: number, token?: string) => {
+    const handleSelectConversation = (id: number, token?: string | null) => {
         setActiveConversationId(id);
         const fetchToken = token ? Promise.resolve(token) : getToken();
         fetchToken.then(tok => {
@@ -174,7 +175,7 @@ const ChatInterface: React.FC = () => {
         let finalMessageState: ChatMessageType | null = null;
 
         try {
-            const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
+            const response = await getRecipeForDish(inputText, imageBase64, chatHistory, i18n.language);
             
             if (!response.body) {
                 throw new Error("The response body is empty.");
@@ -209,7 +210,6 @@ const ChatInterface: React.FC = () => {
                 msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg
             ));
 
-
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
@@ -226,8 +226,9 @@ const ChatInterface: React.FC = () => {
                         ));
                         
                         if (activeConversationId === null) {
-                            setActiveConversationId(saveData.conversationId);
-                            await fetchConversations(token); 
+                           setActiveConversationId(saveData.conversationId);
+                           // Await the fetch before continuing if needed, or just let it run
+                           await fetchConversations(token);
                         }
                     }
                 }
@@ -252,19 +253,21 @@ const ChatInterface: React.FC = () => {
     }, [isSignedIn, getToken, i18n.language, chatHistory, activeConversationId, fetchConversations]);
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden font-sans">
+        <div className="flex h-screen w-screen bg-white font-sans">
             <SignedIn>
                  <Sidebar
                     conversations={conversations}
                     activeConversationId={activeConversationId}
-                    onSelectConversation={handleSelectConversation}
+                    onSelectConversation={(id) => handleSelectConversation(id, null)}
                     onNewChat={handleNewChat}
                     isOpen={isSidebarOpen}
                 />
             </SignedIn>
             
-            <div className="flex-1 flex flex-col relative bg-gradient-to-br from-gray-50 to-gray-200">
-                <header className="absolute top-0 left-0 right-0 bg-white/40 backdrop-blur-md z-20 border-b border-black/10">
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
+                {/* Header */}
+                <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
                     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center">
@@ -302,10 +305,11 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </header>
 
-                <main className="flex-1 flex flex-col pt-16 pb-40 md:pb-44">
-                    <div className="max-w-3xl w-full mx-auto px-4 flex-1 overflow-y-auto" id="chat-container">
+                {/* Chatting Area (This will scroll) */}
+                <main className="flex-1 overflow-y-auto">
+                    <div className="max-w-3xl w-full mx-auto px-4">
                         {chatHistory.length === 0 && !isLoading && (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp">
+                            <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 animate-fadeInUp min-h-[calc(100vh-16rem)]">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                                 <p className="text-2xl font-semibold">
                                     {isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}
@@ -319,7 +323,7 @@ const ChatInterface: React.FC = () => {
                                 </div>
                             </div>
                         )}
-                        <div className="space-y-6 pt-4">
+                        <div className="space-y-6 pt-6 pb-8">
                             {isLoading && chatHistory.length === 0 && (
                                 <div className='flex justify-center items-center h-full'>
                                     <Loader />
@@ -331,7 +335,8 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                 <footer className="absolute bottom-0 left-0 right-0">
+                {/* Footer and Input */}
+                 <footer className="flex-shrink-0">
                     <div className="bg-transparent">
                         <div className="max-w-3xl mx-auto">
                             <div className="p-4">
