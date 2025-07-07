@@ -8,7 +8,7 @@ import { ChatMessage as ChatMessageType, Conversation } from './types';
 import { getRecipeForDish } from './services/geminiService';
 import ChatInput from './components/ChatInput';
 import ChatMessage from './components/ChatMessage';
-import { LogoIcon, MenuIcon, XIcon } from './components/icons'; // Import XIcon for the animation
+import { LogoIcon, MenuIcon, XIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import LanguageSwitcher from './components/LanguageSwitcher';
@@ -122,7 +122,7 @@ const ChatInterface: React.FC = () => {
     };
 
     const handleDeleteConversation = async (id: number) => {
-        if (!window.confirm(t('confirm_delete_chat'))) return;
+        if (!window.confirm("Are you sure you want to delete this chat?")) return;
 
         const token = await getToken();
         if (!token) return;
@@ -135,15 +135,52 @@ const ChatInterface: React.FC = () => {
             });
             handleNewChat();
             await fetchConversations(token);
-
         } catch (error) {
             console.error("Error deleting conversation:", error);
-            alert("An error occurred while deleting the chat.");
         }
     };
     
+    // Function for Guest user to clear their temporary chat
+    const handleClearHistory = () => {
+        setChatHistory([]);
+    };
+
+    // Re-added the missing function
     const handleFetchVideos = async (messageId: string, dishName: string) => {
-        // ... (This function remains unchanged)
+        try {
+            const response = await fetch('/api/getVideos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishName, lang: i18n.language }),
+            });
+
+            if (response.ok) {
+                const videos = await response.json();
+                setChatHistory(prev =>
+                    prev.map(msg =>
+                        msg.id === messageId ? { ...msg, videos } : msg
+                    )
+                );
+
+                if (isSignedIn) {
+                    const token = await getToken();
+                    if (token) {
+                        await fetch('/api/update-chat-message', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ messageId, videos }),
+                        });
+                    }
+                }
+            } else {
+                console.error("Failed to fetch videos");
+            }
+        } catch (error) {
+            console.error("Error fetching videos:", error);
+        }
     };
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
@@ -235,9 +272,8 @@ const ChatInterface: React.FC = () => {
             
             <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
                 <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
-                    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
-                            {/* Left Side: Toggle and Logo */}
                             <div className="flex items-center">
                                 <SignedIn>
                                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 mr-2 text-gray-700 rounded-full hover:bg-gray-200">
@@ -248,8 +284,6 @@ const ChatInterface: React.FC = () => {
                                      <Link to="/" className="flex items-center space-x-3"><LogoIcon className="w-8 h-8" /><h1 className="hidden sm:block text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1></Link>
                                 </SignedOut>
                             </div>
-
-                            {/* Right Side: Language and User/Sign-in */}
                             <div className="flex items-center gap-4">
                                 <LanguageSwitcher />
                                 <SignedIn>
@@ -287,9 +321,18 @@ const ChatInterface: React.FC = () => {
                 
                  <footer className="flex-shrink-0">
                     <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
-                            <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                                    <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
-                            </div></div></div></div>
+                            <div className="text-center pb-2 pt-1 text-xs text-gray-500 flex justify-center items-center gap-4">
+                                <SignedOut>
+                                    {chatHistory.length > 0 && (
+                                        <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">
+                                            {t('clear_history')}
+                                        </button>
+                                    )}
+                                </SignedOut>
+                                <span>{t('copyright')}</span>
+                            </div>
+                        </div>
+                    </div>
                 </footer>
             </div>
         </div>

@@ -51,15 +51,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, t, onFetchVideos }) 
           <div className="mt-4 w-full">
             <RecipeCard recipe={message.recipe} t={t} />
 
-            {!message.videos && (
+            {/* Corrected Condition: Show button if videos array is missing or empty */}
+            {(!message.videos || message.videos.length === 0) && (
               <div className="mt-4">
-                {/* ---- START: โค้ดที่แก้ไข ---- */}
                 <button
                   onClick={handleFetchClick}
                   disabled={isFetchingVideos}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-black disabled:bg-gray-500 disabled:cursor-wait transition-all duration-200 active:scale-95"
                 >
-                {/* ---- END: โค้ดที่แก้ไข ---- */}
                   {isFetchingVideos ? (
                     <>
                       <Loader />
