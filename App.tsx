@@ -122,7 +122,7 @@ const ChatInterface: React.FC = () => {
     };
 
     const handleDeleteConversation = async (id: number) => {
-        if (!window.confirm(t('confirm_delete_chat'))) return;
+        if (!window.confirm("Are you sure you want to delete this chat?")) return;
 
         const token = await getToken();
         if (!token) return;
@@ -135,15 +135,48 @@ const ChatInterface: React.FC = () => {
             });
             handleNewChat();
             await fetchConversations(token);
-
         } catch (error) {
             console.error("Error deleting conversation:", error);
-            alert("An error occurred while deleting the chat.");
         }
     };
     
+    // Function for Guest user to clear their temporary chat
+    const handleClearHistory = () => {
+        setChatHistory([]);
+    };
+
+    // Re-added the full logic for fetching videos
     const handleFetchVideos = async (messageId: string, dishName: string) => {
-        // ... (This function remains unchanged)
+        try {
+            const response = await fetch('/api/getVideos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishName, lang: i18n.language }),
+            });
+            if (response.ok) {
+                const videos = await response.json();
+                setChatHistory(prev => prev.map(msg =>
+                    msg.id === messageId ? { ...msg, videos } : msg
+                ));
+                if (isSignedIn) {
+                    const token = await getToken();
+                    if (token) {
+                        // In a real app, you might want to check if the message ID from a guest session
+                        // can be resolved to a persistent ID after sign-in to update the correct record.
+                        // For now, we assume if the user is signed in, the messageId is valid for the API.
+                        await fetch('/api/update-chat-message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ messageId, videos }),
+                        });
+                    }
+                }
+            } else {
+                 console.error("Failed to fetch videos");
+            }
+        } catch (error) {
+            console.error("Error fetching videos:", error);
+        }
     };
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
@@ -288,6 +321,13 @@ const ChatInterface: React.FC = () => {
                  <footer className="flex-shrink-0">
                     <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
                             <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                                    <SignedOut>
+                                        {chatHistory.length > 0 && !isLoading && (
+                                            <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">
+                                                {t('clear_history')}
+                                            </button>
+                                        )}
+                                    </SignedOut>
                                     <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
                             </div></div></div></div>
                 </footer>
