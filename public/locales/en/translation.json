@@ -21,5 +21,7 @@
   "related_videos_title": "Related Cooking Videos",
   "sign_in_button": "Sign In",
   "show_related_videos": "Show Related Videos",
-  "fetching_videos": "Fetching videos..."
+  "fetching_videos": "Fetching videos...",
+  "new_chat": "New Chat",
+  "chat_history_title": "Chat History"
 }

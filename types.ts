@@ -28,6 +28,14 @@ export interface Video {
   channelTitle: string;
 }
 
+// --- ที่เพิ่มเข้ามาใหม่ ---
+export interface Conversation {
+  id: number;
+  title: string;
+  createdAt: string;
+}
+// --------------------
+
 export interface ChatMessage {
   id:string;
   role: 'user' | 'model';

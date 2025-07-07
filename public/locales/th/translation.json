@@ -21,5 +21,7 @@
   "related_videos_title": "วิดีโอสอนทำอาหารที่เกี่ยวข้อง",
   "sign_in_button": "ลงชื่อเข้าใช้",
   "show_related_videos": "แสดงวิดีโอแนะนำ",
-  "fetching_videos": "กำลังค้นหาวิดีโอ..."
+  "fetching_videos": "กำลังค้นหาวิดีโอ...",
+  "new_chat": "แชทใหม่",
+  "chat_history_title": "ประวัติการสนทนา"
 }
