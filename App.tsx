@@ -8,7 +8,7 @@ import { ChatMessage as ChatMessageType, Conversation } from './types';
 import { getRecipeForDish } from './services/geminiService';
 import ChatInput from './components/ChatInput';
 import ChatMessage from './components/ChatMessage';
-import { LogoIcon, MenuIcon, XIcon } from './components/icons'; // Import XIcon for the animation
+import { LogoIcon, MenuIcon, XIcon } from './components/icons';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import LanguageSwitcher from './components/LanguageSwitcher';
@@ -39,11 +39,7 @@ const ChatInterface: React.FC = () => {
     const { isSignedIn, getToken, isLoaded } = useAuth();
     const { user } = useUser();
 
-    // --- START: นี่คือจุดที่แก้ไข ---
-    // เปลี่ยนค่าเริ่มต้นของ isSidebarOpen จาก true เป็น false
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    // --- END: จุดที่แก้ไข ---
-    
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -126,10 +122,8 @@ const ChatInterface: React.FC = () => {
 
     const handleDeleteConversation = async (id: number) => {
         if (!window.confirm("Are you sure you want to delete this chat?")) return;
-
         const token = await getToken();
         if (!token) return;
-
         try {
             await fetch('/api/delete-conversation', {
                 method: 'DELETE',
@@ -143,9 +137,7 @@ const ChatInterface: React.FC = () => {
         }
     };
     
-    const handleClearHistory = () => {
-        setChatHistory([]);
-    };
+    const handleClearHistory = () => { setChatHistory([]); };
 
     const handleFetchVideos = async (messageId: string, dishName: string) => {
         try {
@@ -156,9 +148,7 @@ const ChatInterface: React.FC = () => {
             });
             if (response.ok) {
                 const videos = await response.json();
-                setChatHistory(prev => prev.map(msg =>
-                    msg.id === messageId ? { ...msg, videos } : msg
-                ));
+                setChatHistory(prev => prev.map(msg => msg.id === messageId ? { ...msg, videos } : msg));
                 if (isSignedIn) {
                     const token = await getToken();
                     if (token) {
@@ -169,8 +159,6 @@ const ChatInterface: React.FC = () => {
                         });
                     }
                 }
-            } else {
-                 console.error("Failed to fetch videos");
             }
         } catch (error) {
             console.error("Error fetching videos:", error);
@@ -215,10 +203,19 @@ const ChatInterface: React.FC = () => {
                     if (saveResponse.ok) {
                         const saveData = await saveResponse.json();
                         setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? { ...msg, id: saveData.newModelMessageId } : msg));
+                        
+                        // --- START: นี่คือส่วนที่แก้ไข ---
+                        // Instead of re-fetching all conversations, we just add the new one to the state.
                         if (isNewConversation) {
-                           setActiveConversationId(saveData.conversationId);
-                           await fetchConversations(token);
+                            const newConversation: Conversation = {
+                                id: saveData.conversationId,
+                                title: userMessage.text.substring(0, 40) + (userMessage.text.length > 40 ? '...' : ''),
+                                createdAt: new Date().toISOString(),
+                            };
+                            setActiveConversationId(newConversation.id);
+                            setConversations(prev => [newConversation, ...prev]);
                         }
+                        // --- END: ส่วนที่แก้ไข ---
                     }
                 }
             }
