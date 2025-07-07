@@ -4,6 +4,17 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
+// Helper function to safely parse JSON
+function safeJsonParse(jsonString: string | null) {
+    if (!jsonString) return null;
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.error("Failed to parse JSON string:", jsonString);
+        return null; // Return null or a default value if parsing fails
+    }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
@@ -22,14 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const userId = claims.sub;
 
-        // Get conversation_id from the query string
         const { conversation_id } = req.query;
 
         if (!conversation_id) {
             return res.status(400).json({ error: 'Conversation ID is required' });
         }
 
-        // Fetch messages for the specified conversation and verify ownership
         const { rows } = await sql`
             SELECT m.id, m.role, m.text_content, m.image, m.recipe_data, m.videos_data 
             FROM chat_messages m
@@ -43,8 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             role: row.role,
             text: row.text_content || '',
             image: row.image,
-            recipe: row.recipe_data,
-            videos: row.videos_data || [],
+            // Use the helper to safely parse recipe and video data
+            recipe: safeJsonParse(row.recipe_data),
+            videos: safeJsonParse(row.videos_data) || [],
             isLoading: false,
         }));
     
