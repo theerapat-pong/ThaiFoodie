@@ -133,8 +133,6 @@ const ChatInterface: React.FC = () => {
         }
     };
     
-    const handleClearHistory = () => { setChatHistory([]); };
-
     const handleFetchVideos = async (messageId: string, dishName: string) => {
         try {
             const response = await fetch('/api/getVideos', {
@@ -313,11 +311,6 @@ const ChatInterface: React.FC = () => {
                         </div>
                         <div className="text-center pb-2 pt-2 text-xs text-gray-500">
                             <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                                <SignedOut>
-                                    {chatHistory.length > 0 && !isLoading && (
-                                        <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
-                                    )}
-                                </SignedOut>
                                 <span>{t('copyright')}</span>
                                 <span className="hidden md:inline">|</span>
                                 <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a>

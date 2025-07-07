@@ -3,7 +3,6 @@
   "greeting_signed_out": "Welcome!",
   "headline": "Let ThaiFoodie help you find Thai recipes today.",
   "subheadline": "Type a dish name, upload a photo, or try an example below.",
-  "clear_history": "Clear History",
   "search_placeholder": "Search for recipes...",
   "thinking": "ThaiFoodie is thinking...",
   "recipe_for": "Here is the recipe for {{dishName}}",
