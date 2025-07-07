@@ -2,7 +2,6 @@ import React from 'react';
 import { Conversation } from '../types';
 import { PlusIcon, MessageSquareIcon, LogoIcon, Trash2Icon } from './icons';
 import { useTranslation } from 'react-i18next';
-import { UserButton } from '@clerk/clerk-react';
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -72,13 +71,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ))}
       </nav>
-
-      {/* Footer / User Profile */}
-      <div className="p-2 border-t border-gray-200 flex-shrink-0">
-        <div className="p-2 rounded-lg hover:bg-gray-100">
-          <UserButton afterSignOutUrl="/" />
-        </div>
-      </div>
     </div>
   );
 };

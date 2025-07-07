@@ -8,7 +8,7 @@ import { ChatMessage as ChatMessageType, Conversation } from './types';
 import { getRecipeForDish } from './services/geminiService';
 import ChatInput from './components/ChatInput';
 import ChatMessage from './components/ChatMessage';
-import { LogoIcon, MenuIcon } from './components/icons';
+import { LogoIcon, MenuIcon, XIcon } from './components/icons'; // Import XIcon for the animation
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import LanguageSwitcher from './components/LanguageSwitcher';
@@ -122,26 +122,20 @@ const ChatInterface: React.FC = () => {
     };
 
     const handleDeleteConversation = async (id: number) => {
-        if (!window.confirm("Are you sure you want to delete this chat?")) return;
+        if (!window.confirm(t('confirm_delete_chat'))) return;
 
         const token = await getToken();
         if (!token) return;
 
         try {
-            const response = await fetch('/api/delete-conversation', {
+            await fetch('/api/delete-conversation', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ conversationId: id })
             });
+            handleNewChat();
+            await fetchConversations(token);
 
-            if (response.ok) {
-                // Refresh conversation list and go to new chat state
-                await fetchConversations(token);
-                handleNewChat();
-            } else {
-                const errorData = await response.json();
-                alert(`Failed to delete chat: ${errorData.error}`);
-            }
         } catch (error) {
             console.error("Error deleting conversation:", error);
             alert("An error occurred while deleting the chat.");
@@ -181,6 +175,7 @@ const ChatInterface: React.FC = () => {
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
+                    const isNewConversation = activeConversationId === null;
                     const saveResponse = await fetch('/api/save-chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -189,7 +184,7 @@ const ChatInterface: React.FC = () => {
                     if (saveResponse.ok) {
                         const saveData = await saveResponse.json();
                         setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? { ...msg, id: saveData.newModelMessageId } : msg));
-                        if (activeConversationId === null) {
+                        if (isNewConversation) {
                            setActiveConversationId(saveData.conversationId);
                            await fetchConversations(token);
                         }
@@ -208,20 +203,25 @@ const ChatInterface: React.FC = () => {
     return (
         <div className="flex h-screen w-screen bg-white font-sans">
             <SignedIn>
-                <div className={`transition-all duration-300 ease-in-out flex-shrink-0 h-full overflow-y-auto ${isSidebarOpen ? 'w-64' : 'w-0'} hidden md:block`}>
-                    <Sidebar
-                        conversations={conversations}
-                        activeConversationId={activeConversationId}
-                        onSelectConversation={(id) => { getToken().then(token => token && handleSelectConversation(id, token))}}
-                        onNewChat={handleNewChat}
-                        onDeleteConversation={handleDeleteConversation}
-                    />
+                {/* Desktop Sidebar */}
+                <div className={`transition-all duration-300 ease-in-out flex-shrink-0 h-full overflow-y-auto hidden md:block ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
+                    {isSidebarOpen && (
+                         <Sidebar
+                            conversations={conversations}
+                            activeConversationId={activeConversationId}
+                            onSelectConversation={(id) => { getToken().then(token => token && handleSelectConversation(id, token))}}
+                            onNewChat={handleNewChat}
+                            onDeleteConversation={handleDeleteConversation}
+                        />
+                    )}
                 </div>
+
+                {/* Mobile Sidebar (Overlay) */}
                 {isSidebarOpen && (
                     <div className="md:hidden absolute inset-0 z-30">
                         <div className="absolute inset-0 bg-black/30" onClick={() => setIsSidebarOpen(false)}></div>
                         <div className="relative w-64 h-full bg-gray-50">
-                            <Sidebar
+                             <Sidebar
                                 conversations={conversations}
                                 activeConversationId={activeConversationId}
                                 onSelectConversation={(id) => { getToken().then(token => token && handleSelectConversation(id, token))}}
@@ -235,20 +235,26 @@ const ChatInterface: React.FC = () => {
             
             <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
                 <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
-                    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
+                            {/* Left Side: Toggle and Logo */}
                             <div className="flex items-center">
                                 <SignedIn>
-                                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 mr-2 text-gray-700 rounded-md hover:bg-gray-200">
-                                        <MenuIcon className="w-6 h-6" />
+                                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 mr-2 text-gray-700 rounded-full hover:bg-gray-200">
+                                        {isSidebarOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
                                     </button>
                                 </SignedIn>
                                 <SignedOut>
                                      <Link to="/" className="flex items-center space-x-3"><LogoIcon className="w-8 h-8" /><h1 className="hidden sm:block text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1></Link>
                                 </SignedOut>
                             </div>
+
+                            {/* Right Side: Language and User/Sign-in */}
                             <div className="flex items-center gap-4">
                                 <LanguageSwitcher />
+                                <SignedIn>
+                                    <UserButton afterSignOutUrl="/" />
+                                </SignedIn>
                                 <SignedOut>
                                   <Link to="/sign-in" className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg" title={t('sign_in_button')}><LogIn className="w-4 h-4" /><span className="hidden md:inline">{t('sign_in_button')}</span></Link>
                                 </SignedOut>
