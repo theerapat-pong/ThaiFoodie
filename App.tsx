@@ -59,7 +59,7 @@ const ChatInterface: React.FC = () => {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const { isSignedIn, getToken, isLoaded } = useAuth();
     const { user } = useUser();
-    
+
     // Use the new hook here
     const viewportHeight = useViewportHeight();
 
@@ -240,10 +240,9 @@ const ChatInterface: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [isSignedIn, getToken, i18n.language, chatHistory, activeConversationId]);
+    }, [isSignedIn, getToken, i18n.language, chatHistory, activeConversationId, fetchConversations]);
 
     return (
-        // --- Apply the dynamic height here ---
         <div className="flex w-screen bg-white font-sans" style={{ height: viewportHeight }}>
             <SignedIn>
                 {/* Desktop Sidebar */}
