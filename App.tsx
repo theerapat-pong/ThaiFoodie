@@ -135,7 +135,6 @@ const ChatInterface: React.FC = () => {
     
     const handleClearHistory = () => { setChatHistory([]); };
 
-    // --- START: This is the restored function ---
     const handleFetchVideos = async (messageId: string, dishName: string) => {
         try {
             const response = await fetch('/api/getVideos', {
@@ -161,11 +160,9 @@ const ChatInterface: React.FC = () => {
             console.error("Error fetching videos:", error);
         }
     };
-    // --- END: Restored function ---
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
-
         const userMessage: ChatMessageType = { id: 'user-' + Date.now(), role: 'user', text: inputText, image: imageBase64 || undefined };
         const modelMessageId = 'model-' + Date.now();
         const initialModelMessage: ChatMessageType = { id: modelMessageId, role: 'model', text: '', isLoading: true };
@@ -188,7 +185,6 @@ const ChatInterface: React.FC = () => {
             else if (parsedData.conversation) finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.conversation };
             else finalMessageState = { id: modelMessageId, role: 'model', text: parsedData.responseText, recipe: parsedData };
             setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? { ...finalMessageState!, isLoading: false } : msg));
-
             if (isSignedIn) {
                 const token = await getToken();
                 if (token && finalMessageState) {
@@ -220,7 +216,7 @@ const ChatInterface: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [isSignedIn, getToken, i18n.language, chatHistory, activeConversationId, fetchConversations]);
+    }, [isSignedIn, getToken, i18n.language, chatHistory, activeConversationId]);
 
     return (
         <div className="flex h-screen w-screen bg-white font-sans">
@@ -254,9 +250,10 @@ const ChatInterface: React.FC = () => {
                 )}
             </SignedIn>
             
-            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
-                <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
-                    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
+            {/* === START: Corrected Layout Structure === */}
+            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden relative">
+                <header className="flex-shrink-0 w-full bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
+                    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center">
                                 <SignedIn>
@@ -287,7 +284,8 @@ const ChatInterface: React.FC = () => {
                 </header>
 
                 <main className="flex-1 overflow-y-auto">
-                    <div className="max-w-3xl w-full mx-auto px-4 h-full">
+                    {/* Add padding-bottom to create space for the fixed footer */}
+                    <div className="max-w-3xl w-full mx-auto px-4 pb-44">
                         {chatHistory.length === 0 && !isLoading ? (
                             <div className="flex flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
@@ -308,17 +306,30 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                 <footer className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
-                    <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
-                            <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                 <footer className="absolute bottom-0 left-0 right-0 z-10">
+                    <div className="bg-gradient-to-t from-gray-200/50 via-gray-50/50 to-transparent backdrop-blur-sm pt-4">
+                        <div className="max-w-3xl mx-auto px-4 pb-[env(safe-area-inset-bottom)]">
+                            <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
+                            <div className="text-center pb-2 pt-2 text-xs text-gray-500">
+                                <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
                                     <SignedOut>
                                         {chatHistory.length > 0 && !isLoading && (
                                             <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
                                         )}
                                     </SignedOut>
-                                    <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
-                            </div></div></div></div>
+                                    <span>{t('copyright')}</span>
+                                    <span className="hidden md:inline">|</span>
+                                    <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a>
+                                    <span>|</span>
+                                    <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a>
+                                    <span className="hidden md:inline">|</span>
+                                    <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </footer>
+            {/* === END: Corrected Layout Structure === */}
             </div>
         </div>
     );
