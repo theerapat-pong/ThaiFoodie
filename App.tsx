@@ -39,8 +39,11 @@ const ChatInterface: React.FC = () => {
     const { isSignedIn, getToken, isLoaded } = useAuth();
     const { user } = useUser();
 
-    // States for conversation management
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    // --- START: นี่คือจุดที่แก้ไข ---
+    // เปลี่ยนค่าเริ่มต้นของ isSidebarOpen จาก true เป็น false
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    // --- END: จุดที่แก้ไข ---
+    
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -140,12 +143,10 @@ const ChatInterface: React.FC = () => {
         }
     };
     
-    // Function for Guest user to clear their temporary chat
     const handleClearHistory = () => {
         setChatHistory([]);
     };
 
-    // Re-added the full logic for fetching videos
     const handleFetchVideos = async (messageId: string, dishName: string) => {
         try {
             const response = await fetch('/api/getVideos', {
@@ -161,9 +162,6 @@ const ChatInterface: React.FC = () => {
                 if (isSignedIn) {
                     const token = await getToken();
                     if (token) {
-                        // In a real app, you might want to check if the message ID from a guest session
-                        // can be resolved to a persistent ID after sign-in to update the correct record.
-                        // For now, we assume if the user is signed in, the messageId is valid for the API.
                         await fetch('/api/update-chat-message', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
