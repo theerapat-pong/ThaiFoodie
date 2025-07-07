@@ -135,7 +135,31 @@ const ChatInterface: React.FC = () => {
     
     const handleClearHistory = () => { setChatHistory([]); };
 
-    const handleFetchVideos = async (messageId: string, dishName: string) => { /* ... Functionality remains the same ... */ };
+    const handleFetchVideos = async (messageId: string, dishName: string) => {
+        try {
+            const response = await fetch('/api/getVideos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishName, lang: i18n.language }),
+            });
+            if (response.ok) {
+                const videos = await response.json();
+                setChatHistory(prev => prev.map(msg => msg.id === messageId ? { ...msg, videos } : msg));
+                if (isSignedIn) {
+                    const token = await getToken();
+                    if (token) {
+                        await fetch('/api/update-chat-message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ messageId, videos }),
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching videos:", error);
+        }
+    };
 
     const handleSendMessage = useCallback(async (inputText: string, imageBase64: string | null = null) => {
         if (!inputText.trim() && !imageBase64) return;
@@ -211,6 +235,7 @@ const ChatInterface: React.FC = () => {
                         />
                     )}
                 </div>
+
                 {/* Mobile Sidebar (Overlay) */}
                 {isSidebarOpen && (
                     <div className="md:hidden absolute inset-0 z-30">
@@ -232,6 +257,7 @@ const ChatInterface: React.FC = () => {
                 <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
                     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
+                            {/* Left Side: Toggle and Logo */}
                             <div className="flex items-center">
                                 <SignedIn>
                                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 mr-2 text-gray-700 rounded-full hover:bg-gray-200">
@@ -245,6 +271,8 @@ const ChatInterface: React.FC = () => {
                                      </Link>
                                 </SignedOut>
                             </div>
+
+                            {/* Right Side: Language and User/Sign-in */}
                             <div className="flex items-center gap-4">
                                 <LanguageSwitcher />
                                 <SignedIn>
@@ -261,9 +289,7 @@ const ChatInterface: React.FC = () => {
                 </header>
 
                 <main className="flex-1 overflow-y-auto">
-                    {/* --- START: The main fix is here --- */}
-                    <div className="max-w-3xl w-full mx-auto px-4 h-full pb-[env(safe-area-inset-bottom)]">
-                    {/* --- END: The main fix --- */}
+                    <div className="max-w-3xl w-full mx-auto px-4 h-full">
                         {chatHistory.length === 0 && !isLoading ? (
                             <div className="flex flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
@@ -284,7 +310,7 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                 <footer className="flex-shrink-0">
+                 <footer className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
                     <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
                             <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
                                     <SignedOut>
