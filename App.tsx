@@ -50,9 +50,7 @@ const ChatInterface: React.FC = () => {
         return Array.isArray(prompts) ? prompts : [];
     }, [t]);
 
-    const scrollToBottom = () => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    const scrollToBottom = () => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
     useEffect(scrollToBottom, [chatHistory]);
 
     const fetchMessagesForConversation = useCallback(async (convoId: number, token: string) => {
@@ -105,9 +103,7 @@ const ChatInterface: React.FC = () => {
     
     useEffect(() => {
         if (isLoaded && isSignedIn) {
-            getToken().then(token => {
-                if (token) fetchConversations(token);
-            });
+            getToken().then(token => { if (token) fetchConversations(token); });
         } else if (isLoaded && !isSignedIn) {
             setConversations([]); setChatHistory([]); setActiveConversationId(null); setIsInitialLoad(true);
         }
@@ -203,11 +199,8 @@ const ChatInterface: React.FC = () => {
                     if (saveResponse.ok) {
                         const saveData = await saveResponse.json();
                         setChatHistory(prev => prev.map(msg => msg.id === modelMessageId ? { ...msg, id: saveData.newModelMessageId } : msg));
-                        
-                        // --- START: นี่คือส่วนที่แก้ไข ---
-                        // Instead of re-fetching all conversations, we just add the new one to the state.
                         if (isNewConversation) {
-                            const newConversation: Conversation = {
+                           const newConversation: Conversation = {
                                 id: saveData.conversationId,
                                 title: userMessage.text.substring(0, 40) + (userMessage.text.length > 40 ? '...' : ''),
                                 createdAt: new Date().toISOString(),
@@ -215,7 +208,6 @@ const ChatInterface: React.FC = () => {
                             setActiveConversationId(newConversation.id);
                             setConversations(prev => [newConversation, ...prev]);
                         }
-                        // --- END: ส่วนที่แก้ไข ---
                     }
                 }
             }
@@ -261,6 +253,7 @@ const ChatInterface: React.FC = () => {
                 )}
             </SignedIn>
             
+            {/* This is the main content area that now flexes correctly */}
             <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
                 <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
                     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
@@ -273,7 +266,11 @@ const ChatInterface: React.FC = () => {
                                     </button>
                                 </SignedIn>
                                 <SignedOut>
-                                     <Link to="/" className="flex items-center space-x-3"><LogoIcon className="w-8 h-8" /><h1 className="hidden sm:block text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1></Link>
+                                     <Link to="/" className="flex items-center space-x-3">
+                                        <LogoIcon className="w-8 h-8" />
+                                        {/* FIX #3: Removed hidden class to always show "ThaiFoodie" text */}
+                                        <h1 className="text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1>
+                                     </Link>
                                 </SignedOut>
                             </div>
 
@@ -284,7 +281,10 @@ const ChatInterface: React.FC = () => {
                                     <UserButton afterSignOutUrl="/" />
                                 </SignedIn>
                                 <SignedOut>
-                                  <Link to="/sign-in" className="flex items-center justify-center text-sm font-semibold text-white bg-gray-800 hover:bg-black transition-colors shadow-sm md:gap-2 h-9 w-9 md:w-auto md:px-4 rounded-full md:rounded-lg" title={t('sign_in_button')}><LogIn className="w-4 h-4" /><span className="hidden md:inline">{t('sign_in_button')}</span></Link>
+                                  {/* FIX #1: Redesigned Sign In button */}
+                                  <Link to="/sign-in" className="px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg hover:bg-black transition-colors shadow-sm" title={t('sign_in_button')}>
+                                    {t('sign_in_button')}
+                                  </Link>
                                 </SignedOut>
                             </div>
                         </div>
@@ -292,9 +292,10 @@ const ChatInterface: React.FC = () => {
                 </header>
 
                 <main className="flex-1 overflow-y-auto">
-                    <div className="max-w-3xl w-full mx-auto px-4">
+                    <div className="max-w-3xl w-full mx-auto px-4 h-full">
                         {chatHistory.length === 0 && !isLoading ? (
-                            <div className="flex flex-col items-center justify-center text-center text-gray-600 animate-fadeInUp min-h-[calc(100vh-16rem)]">
+                            // FIX #2: Changed vertical alignment
+                            <div className="flex flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                                 <p className="text-2xl font-semibold">{isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}</p>
                                 <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
@@ -313,14 +314,13 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                 <footer className="flex-shrink-0">
+                {/* FIX #4: Added safe-area padding to the footer */}
+                 <footer className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
                     <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
                             <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
                                     <SignedOut>
                                         {chatHistory.length > 0 && !isLoading && (
-                                            <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">
-                                                {t('clear_history')}
-                                            </button>
+                                            <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
                                         )}
                                     </SignedOut>
                                     <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
