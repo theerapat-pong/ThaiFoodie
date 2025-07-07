@@ -250,24 +250,24 @@ const ChatInterface: React.FC = () => {
                 )}
             </SignedIn>
             
-            <div className="fixed-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200">
+            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
                 <header className="fixed-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
                     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16">
-                            <div className="flex items-center">
+                        <div className="fixed items-center justify-between h-16">
+                            <div className="fixed items-center">
                                 <SignedIn>
                                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 mr-2 text-gray-700 rounded-full hover:bg-gray-200">
                                         {isSidebarOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
                                     </button>
                                 </SignedIn>
                                 <SignedOut>
-                                     <Link to="/" className="flex items-center space-x-3">
+                                     <Link to="/" className="fixed items-center space-x-3">
                                         <LogoIcon className="w-8 h-8" />
                                         <h1 className="text-2xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-black to-gray-700">ThaiFoodie</h1>
                                      </Link>
                                 </SignedOut>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="fixed items-center gap-4">
                                 <LanguageSwitcher />
                                 <SignedIn>
                                     <UserButton afterSignOutUrl="/" />
