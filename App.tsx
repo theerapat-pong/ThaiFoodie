@@ -285,7 +285,7 @@ const ChatInterface: React.FC = () => {
                     {/* The scrollable content */}
                     <div className="max-w-3xl w-full mx-auto px-4">
                         {chatHistory.length === 0 && !isLoading ? (
-                            <div className="fixed flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
+                            <div className="flex flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                                 <p className="text-2xl font-semibold">{isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}</p>
                                 <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
