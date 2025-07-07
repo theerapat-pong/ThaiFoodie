@@ -290,7 +290,7 @@ const ChatInterface: React.FC = () => {
                                 <p className="text-2xl font-semibold">{isLoaded && isSignedIn ? t('greeting_signed_in', { firstName: user?.firstName }) : t('greeting_signed_out')}</p>
                                 <p className="mt-2 text-md text-gray-500">{t('headline')}</p>
                                 <p className="mt-4 text-sm max-w-sm text-gray-500">{t('subheadline')}</p>
-                                <div className="mt-6 fixed flex-wrap justify-center gap-2">
+                                <div className="mt-6 flex flex-wrap justify-center gap-2">
                                     {examplePrompts.map((prompt) => (<button key={prompt} onClick={() => handleSendMessage(prompt)} className="bg-white/80 text-sm text-gray-700 px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-200 transition-colors">{prompt}</button>))}
                                 </div>
                             </div>
