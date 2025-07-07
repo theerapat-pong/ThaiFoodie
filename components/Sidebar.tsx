@@ -1,6 +1,6 @@
 import React from 'react';
 import { Conversation } from '../types';
-import { PlusIcon, MessageSquareIcon, LogoIcon, Trash2Icon } from './icons'; // Add Trash2Icon
+import { PlusIcon, MessageSquareIcon, LogoIcon, Trash2Icon } from './icons';
 import { useTranslation } from 'react-i18next';
 import { UserButton } from '@clerk/clerk-react';
 
@@ -9,7 +9,7 @@ interface SidebarProps {
   activeConversationId: number | null;
   onSelectConversation: (id: number) => void;
   onNewChat: () => void;
-  onDeleteConversation: (id: number) => void; // Add delete handler
+  onDeleteConversation: (id: number) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -82,3 +82,5 @@ const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 };
+
+export default Sidebar;
