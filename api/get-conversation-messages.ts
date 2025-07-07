@@ -1,19 +1,9 @@
+// api/get-conversation-messages.ts
 import { sql } from '@vercel/postgres';
 import { Clerk } from '@clerk/clerk-sdk-node';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
-
-// Helper function to safely parse JSON
-function safeJsonParse(jsonString: string | null) {
-    if (!jsonString) return null;
-    try {
-        return JSON.parse(jsonString);
-    } catch (e) {
-        console.error("Failed to parse JSON string:", jsonString);
-        return null; // Return null or a default value if parsing fails
-    }
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
@@ -52,15 +42,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             role: row.role,
             text: row.text_content || '',
             image: row.image,
-            // Use the helper to safely parse recipe and video data
-            recipe: safeJsonParse(row.recipe_data),
-            videos: safeJsonParse(row.videos_data) || [],
+            // Directly use the object from the database. Vercel/Postgres already parsed it.
+            recipe: row.recipe_data, 
+            videos: row.videos_data || [], // Use the parsed object or default to an empty array
             isLoading: false,
         }));
     
         res.status(200).json(chatHistory);
     } catch (error) {
-        console.error(error);
-        res.status(401).json({ error: 'Unauthorized or failed to fetch history' });
+        console.error("Error fetching conversation messages:", error);
+        res.status(500).json({ error: 'An internal server error occurred while fetching messages.' });
     }
 }
