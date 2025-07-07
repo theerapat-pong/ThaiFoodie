@@ -251,7 +251,7 @@ const ChatInterface: React.FC = () => {
             </SignedIn>
             
             <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
-                <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
+                <header className="fixed-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
                     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center">
@@ -306,7 +306,7 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                <footer className="fixed inset-x-0 bottom-0 flex-shrink-0">
+                <footer className="fixed bottom-0 left-0 right-0 bg-white/70 backdrop-blur-lg border-t border-black/10">
                     <div className="bg-transparent pt-2 pb-[env(safe-area-inset-bottom)]">
                         <div className="max-w-3xl mx-auto px-4">
                             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
