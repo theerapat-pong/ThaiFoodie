@@ -235,7 +235,6 @@ const ChatInterface: React.FC = () => {
                         />
                     )}
                 </div>
-
                 {/* Mobile Sidebar (Overlay) */}
                 {isSidebarOpen && (
                     <div className="md:hidden absolute inset-0 z-30">
@@ -257,7 +256,6 @@ const ChatInterface: React.FC = () => {
                 <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
                     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
-                            {/* Left Side: Toggle and Logo */}
                             <div className="flex items-center">
                                 <SignedIn>
                                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 mr-2 text-gray-700 rounded-full hover:bg-gray-200">
@@ -271,8 +269,6 @@ const ChatInterface: React.FC = () => {
                                      </Link>
                                 </SignedOut>
                             </div>
-
-                            {/* Right Side: Language and User/Sign-in */}
                             <div className="flex items-center gap-4">
                                 <LanguageSwitcher />
                                 <SignedIn>
@@ -310,17 +306,31 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                 <footer className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
-                    <div className="bg-transparent"><div className="max-w-3xl mx-auto"><div className="p-4"><ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} /></div>
-                            <div className="text-center pb-2 pt-1 text-xs text-gray-500"><div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
-                                    <SignedOut>
-                                        {chatHistory.length > 0 && !isLoading && (
-                                            <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
-                                        )}
-                                    </SignedOut>
-                                    <span>{t('copyright')}</span><span className="hidden md:inline">|</span><a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a><span>|</span><a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a><span className="hidden md:inline">|</span><a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
-                            </div></div></div></div>
+                {/* --- START: This is the corrected footer --- */}
+                <footer className="flex-shrink-0">
+                    <div className="bg-transparent pt-2 pb-[env(safe-area-inset-bottom)]">
+                        <div className="max-w-3xl mx-auto px-4">
+                            <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
+                        </div>
+                        <div className="text-center pb-2 pt-2 text-xs text-gray-500">
+                            <div className="flex justify-center items-center space-x-2 md:space-x-4 flex-wrap px-4">
+                                <SignedOut>
+                                    {chatHistory.length > 0 && !isLoading && (
+                                        <button onClick={handleClearHistory} className="text-xs text-gray-500 hover:text-red-600 transition-colors">{t('clear_history')}</button>
+                                    )}
+                                </SignedOut>
+                                <span>{t('copyright')}</span>
+                                <span className="hidden md:inline">|</span>
+                                <a href={i18n.language.startsWith('th') ? '/terms-of-service.html' : '/terms-of-service.en.html'} className="underline hover:text-black">{t('terms_of_service')}</a>
+                                <span>|</span>
+                                <a href={i18n.language.startsWith('th') ? '/privacy-policy.html' : '/privacy-policy.en.html'} className="underline hover:text-black">{t('privacy_policy')}</a>
+                                <span className="hidden md:inline">|</span>
+                                <a href="mailto:info@thaifoodie.site" className="underline hover:text-black">{t('contact_us')}</a>
+                            </div>
+                        </div>
+                    </div>
                 </footer>
+                {/* --- END: Corrected footer --- */}
             </div>
         </div>
     );
