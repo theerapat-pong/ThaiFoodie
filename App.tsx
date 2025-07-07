@@ -168,7 +168,7 @@ const ChatInterface: React.FC = () => {
         setIsLoading(true);
         let finalMessageState: ChatMessageType | null = null;
         try {
-            const response = await getRecipeForDish(inputText, imageBase64, chatHistory, i18n.language);
+            const response = await getRecipeForDish(inputText, imageBase64, chatHistory);
             if (!response.body) throw new Error("The response body is empty.");
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -281,7 +281,7 @@ const ChatInterface: React.FC = () => {
                 </header>
                 
                 {/* Main content and footer are now siblings in a flex column */}
-                <main className="flex-1 overflow-y-auto">
+                <main className="flex-1 overflow-y-auto max-h-[calc(100vh - 128px)] pb-16">
                     {/* The scrollable content */}
                     <div className="max-w-3xl w-full mx-auto px-4">
                         {chatHistory.length === 0 && !isLoading ? (
@@ -295,7 +295,7 @@ const ChatInterface: React.FC = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-6 pt-6 pb-8">
+                            <div className="space-y-6">
                                 {isLoading && chatHistory.length === 0 && <div className='flex justify-center items-center h-full'><Loader /></div>}
                                 {chatHistory.map((msg) => ( <ChatMessage key={msg.id} message={msg} t={t} onFetchVideos={handleFetchVideos} /> ))}
                                 <div ref={chatEndRef} />
