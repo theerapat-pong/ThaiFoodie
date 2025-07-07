@@ -18,27 +18,6 @@ import Sidebar from './components/Sidebar';
 const SignInPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignIn })));
 const SignUpPage = lazy(() => import('@clerk/clerk-react').then(module => ({ default: module.SignUp })));
 
-// --- START: New Custom Hook to get dynamic viewport height ---
-const useViewportHeight = () => {
-    const [height, setHeight] = useState(window.innerHeight);
-
-    useEffect(() => {
-        const handleResize = () => {
-            setHeight(window.innerHeight);
-        };
-
-        window.addEventListener('resize', handleResize);
-        
-        // Initial call to set height correctly
-        handleResize();
-
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    return height;
-};
-// --- END: New Custom Hook ---
-
 
 function sanitizeAndParseJson(jsonString: string): any {
     try {
@@ -59,9 +38,6 @@ const ChatInterface: React.FC = () => {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const { isSignedIn, getToken, isLoaded } = useAuth();
     const { user } = useUser();
-
-    // Use the new hook here
-    const viewportHeight = useViewportHeight();
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -243,7 +219,7 @@ const ChatInterface: React.FC = () => {
     }, [isSignedIn, getToken, i18n.language, chatHistory, activeConversationId, fetchConversations]);
 
     return (
-        <div className="flex w-screen bg-white font-sans" style={{ height: viewportHeight }}>
+        <div className="flex h-screen w-screen bg-white font-sans">
             <SignedIn>
                 {/* Desktop Sidebar */}
                 <div className={`transition-all duration-300 ease-in-out flex-shrink-0 h-full overflow-y-auto hidden md:block ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
@@ -274,9 +250,9 @@ const ChatInterface: React.FC = () => {
                 )}
             </SignedIn>
             
-            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden relative">
-                <header className="flex-shrink-0 w-full bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
-                    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-200 overflow-hidden">
+                <header className="flex-shrink-0 bg-white/40 backdrop-blur-md z-10 border-b border-black/10">
+                    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center">
                                 <SignedIn>
@@ -305,9 +281,11 @@ const ChatInterface: React.FC = () => {
                         </div>
                     </div>
                 </header>
-
+                
+                {/* Main content and footer are now siblings in a flex column */}
                 <main className="flex-1 overflow-y-auto">
-                    <div className="max-w-3xl w-full mx-auto px-4 pb-44">
+                    {/* The scrollable content */}
+                    <div className="max-w-3xl w-full mx-auto px-4">
                         {chatHistory.length === 0 && !isLoading ? (
                             <div className="flex flex-col items-center justify-start text-center text-gray-600 animate-fadeInUp h-full pt-20 sm:pt-24">
                                 <LogoIcon className="w-12 h-12 md:w-16 md:h-16 mb-4" />
@@ -328,8 +306,8 @@ const ChatInterface: React.FC = () => {
                     </div>
                 </main>
                 
-                 <footer className="absolute bottom-0 left-0 right-0 z-10">
-                    <div className="bg-gradient-to-t from-gray-200/50 via-gray-50/50 to-transparent backdrop-blur-sm pt-4 pb-[env(safe-area-inset-bottom)]">
+                <footer className="flex-shrink-0">
+                    <div className="bg-transparent pt-2 pb-[env(safe-area-inset-bottom)]">
                         <div className="max-w-3xl mx-auto px-4">
                             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} t={t} />
                         </div>
