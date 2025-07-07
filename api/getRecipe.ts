@@ -1,112 +1,112 @@
-// api/getRecipe.ts
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { pipeline, cos_sim } from '@xenova/transformers';
-import type { Recipe, SearchResult } from '../types';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, Content, GenerateContentRequest } from "@google/genai";
 
-// --- DATABASE LOADING ---
-// Use require to load JSON files in Vercel environment
-const recipes: Recipe[] = require('../db.json');
-const embeddings: number[][] = require('../embeddings.json');
-
-// --- INITIALIZATION ---
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-// Caching the model pipeline for better performance
-let extractor: any = null;
-const getExtractor = async () => {
-  if (extractor === null) {
-    extractor = await pipeline('feature-extraction', 'Xenova/thai-food-mpnet-new-v10');
-  }
-  return extractor;
+export const config = {
+  runtime: 'edge',
 };
 
-// --- CORE FUNCTIONS ---
-async function search(query: string): Promise<SearchResult | null> {
-  const model = await getExtractor();
-  
-  // Generate embedding for the user's query
-  const queryEmbedding = await model(query, { pooling: 'mean', normalize: true });
-  
-  // Compare query embedding with all recipe embeddings
-  let bestMatch: SearchResult = { recipe: recipes[0], score: -1 };
+const API_KEY = process.env.API_KEY;
 
-  for (let i = 0; i < embeddings.length; i++) {
-    const score = cos_sim(queryEmbedding.data, embeddings[i]);
-    if (score > bestMatch.score) {
-      bestMatch = { recipe: recipes[i], score };
-    }
-  }
+const systemInstruction = `You are "ThaiFoodie AI", a friendly and knowledgeable chef specializing in Thai cuisine.
 
-  // Return the best match if the similarity score is reasonably high
-  return bestMatch.score > 0.5 ? bestMatch : null;
+**ABSOLUTE RULES:**
+
+1.  **DETECT LANGUAGE:** Your first and most critical task is to determine the user's language (Thai or English) from their most recent prompt.
+2.  **STRICT LANGUAGE ADHERENCE:** ALL parts of your response, without exception, MUST be in the single language you detected in step 1. Do not mix languages.
+3.  **JSON SCHEMA:** You MUST respond with ONLY ONE of the following JSON schemas. The entire response must be a single, raw, perfectly-formed JSON object. There must be no trailing commas.
+
+    * **SCHEMA A: For Thai Recipe Requests**
+        -   All JSON **keys** MUST remain in English.
+        -   All JSON **values** (like dishName, ingredients, instructions, etc.) MUST be strictly in the user's detected language.
+        -   **You MUST include a "responseText" key.** This key's value should be a friendly introductory sentence like "Here is the recipe for [dishName]" or "นี่คือสูตรสำหรับ [dishName] ค่ะ", using the dishName you've generated in the correct language.
+
+        \`\`\`json
+        {
+          "responseText": "Your introductory sentence here.",
+          "dishName": "The name of the dish, strictly in the user's language.",
+          "ingredients": [
+            { "name": "Ingredient name, strictly in the user's language.", "amount": "Quantity, strictly in the user's language." }
+          ],
+          "instructions": [
+            "Step 1, strictly in the user's language.",
+            "Step 2, strictly in the user's language."
+          ],
+          "calories": "Estimated total calorie count"
+        }
+        \`\`\`
+
+    * **SCHEMA B: For Other Conversations**
+        \`\`\`json
+        {
+          "conversation": "Your friendly response, strictly in the user's detected language."
+        }
+        \`\`\`
+
+    * **SCHEMA C: For Errors**
+        \`\`\`json
+        {
+          "error": "A polite error message, strictly in the user's detected language."
+        }
+        \`\`\`
+`;
+
+function base64ToGenerativePart(base64: string, mimeType: string) {
+  return { inlineData: { data: base64, mimeType } };
 }
 
-async function translateRecipe(recipe: Recipe): Promise<Recipe> {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `
-      Translate the following Thai recipe to English.
-      Do not add any extra information, just translate the text.
-      Return the result as a JSON object with the keys "dishName", "ingredients", and "instructions".
-
-      Thai Recipe:
-      {
-        "dishName": "${recipe.dishName}",
-        "ingredients": ["${recipe.ingredients.join('", "')}"],
-        "instructions": ["${recipe.instructions.join('", "')}"]
-      }
-    `;
-
-    try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text().replace('```json', '').replace('```', '').trim();
-      const translated = JSON.parse(text);
-      
-      return {
-        ...recipe, // Keep original id and calories
-        dishName: translated.dishName,
-        ingredients: translated.ingredients,
-        instructions: translated.instructions,
-      };
-    } catch (error) {
-      console.error('Translation failed:', error);
-      return recipe; // Return original recipe if translation fails
-    }
-}
-
-
-// --- API HANDLER ---
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Only POST requests are allowed' });
-  }
-
-  const { prompt, lang } = req.body;
-
-  if (!prompt) {
-    return res.status(400).json({ message: 'Prompt is required' });
-  }
-
+export default async function handler(request: Request) {
   try {
-    const searchResult = await search(prompt);
-
-    if (!searchResult) {
-      return res.status(404).json({ message: 'Recipe not found in our database.' });
+    if (!API_KEY) {
+      throw new Error("API_KEY is not configured on the server.");
     }
 
-    let finalRecipe = searchResult.recipe;
-    
-    // If user requests English, translate the found recipe
-    if (lang === 'en') {
-      finalRecipe = await translateRecipe(finalRecipe);
+    const { prompt, imageBase64, history } = await request.json();
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+    const contents: Content[] = (history || [])
+      .filter((msg: any) => (msg.role === 'user' || msg.role === 'model') && !msg.isLoading && msg.text)
+      .map((msg: any) => ({
+        role: msg.role,
+        parts: [{ text: msg.text }]
+      }));
+
+    if (imageBase64) {
+      const imagePart = base64ToGenerativePart(imageBase64.split(',')[1], imageBase64.split(';')[0].split(':')[1]);
+      contents.push({ role: 'user', parts: [imagePart, { text: prompt }] });
+    } else {
+      contents.push({ role: 'user', parts: [{ text: prompt }] });
     }
     
-    return res.status(200).json(finalRecipe);
+    const req: GenerateContentRequest = {
+        model: "gemini-2.5-flash",
+        contents: contents,
+        config: {
+          systemInstruction: systemInstruction,
+          responseMimeType: "application/json",
+        },
+    };
 
-  } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ message: 'An internal server error occurred.' });
+    const streamingResponse = await ai.models.generateContentStream(req);
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        for await (const chunk of streamingResponse) {
+          const text = chunk.text;
+          if (text) {
+            controller.enqueue(encoder.encode(text));
+          }
+        }
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+
+  } catch (e) {
+    console.error("Vercel Function Error:", e);
+    const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
+    return new Response(JSON.stringify({ error: `Server error: ${errorMessage}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
